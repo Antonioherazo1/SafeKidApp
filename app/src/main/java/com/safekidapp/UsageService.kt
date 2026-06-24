@@ -130,8 +130,8 @@ class UsageService : Service() {
             "Tiempo agotado"
         } else {
             val remaining = (limit - total) / 60000
-            if (remaining < 1) "Menos de 1 min restante"
-            else if (remaining == 1) "1 min restante"
+            if (remaining < 1L) "Menos de 1 min restante"
+            else if (remaining == 1L) "1 min restante"
             else "$remaining min restantes"
         }
 
