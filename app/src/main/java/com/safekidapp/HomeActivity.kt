@@ -99,7 +99,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun showPasswordDialog() {
         val inputLayout = TextInputLayout(this)
-        val input = TextInputEditText(inputLayout)
+        val input = TextInputEditText(this)
         input.inputType = android.text.InputType.TYPE_CLASS_TEXT or
                 android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         inputLayout.addView(input)
