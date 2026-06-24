@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -82,10 +83,10 @@ class SettingsActivity : AppCompatActivity() {
         try {
             dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
         } catch (e: SecurityException) {
-            Toast.makeText(this, "Error de permisos: ${e.message}", Toast.LENGTH_LONG).show()
+            showAdbInstructions()
             return
         } catch (e: Exception) {
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            showAdbInstructions()
             return
         }
 
@@ -97,6 +98,18 @@ class SettingsActivity : AppCompatActivity() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
+    }
+
+    private fun showAdbInstructions() {
+        AlertDialog.Builder(this)
+            .setTitle("Permiso requerido")
+            .setMessage("Tu dispositivo no autorizó automáticamente el modo bloqueo.\n\n" +
+                    "Conecta el celular al PC por USB (con depuración USB activada) y ejecuta:\n\n" +
+                    "adb shell dpm set-lock-task-packages com.safekidapp\n\n" +
+                    "Luego presiona 'Reintentar'.")
+            .setPositiveButton("Reintentar") { _, _ -> startKioskMode() }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun savePassword(password: String) {
