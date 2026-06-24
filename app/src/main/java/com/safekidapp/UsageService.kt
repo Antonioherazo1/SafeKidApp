@@ -118,12 +118,7 @@ class UsageService : Service() {
                     }
                 }
                 "block" -> {
-                    val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-                    prefs.edit().putBoolean("kiosk_active", true).apply()
-                    val intent = Intent(this, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    }
-                    startActivity(intent)
+                    triggerBlock()
                 }
                 "unblock" -> {
                     val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
@@ -169,6 +164,7 @@ class UsageService : Service() {
         notifRunnable = Runnable {
             updateNotification()
             publishStatus()
+            checkTimeLimit()
             handler.postDelayed(notifRunnable!!, 10000)
         }
         handler.postDelayed(notifRunnable!!, 1000)
@@ -264,9 +260,13 @@ class UsageService : Service() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        handler.post {
+            try {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+            } catch (_: Exception) {}
         }
-        startActivity(intent)
     }
 }
