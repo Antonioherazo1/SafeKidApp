@@ -2,8 +2,10 @@ package com.safekidapp
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -24,6 +26,7 @@ class UsageService : Service() {
     private var screenOn = false
     private var checkRunnable: Runnable? = null
     private var notifRunnable: Runnable? = null
+    private var blockTriggered = false
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -143,7 +146,7 @@ class UsageService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("usage_tracker", "SafeKid", NotificationManager.IMPORTANCE_LOW).apply {
+            val channel = NotificationChannel("usage_tracker", "SafeKid", NotificationManager.IMPORTANCE_HIGH).apply {
                 setSound(null, null)
                 enableVibration(false)
             }
@@ -257,17 +260,44 @@ class UsageService : Service() {
     }
 
     private fun triggerBlock() {
+        if (blockTriggered) return
+        blockTriggered = true
+
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
         try {
-            val intent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                putExtra("triggered_by_timeout", true)
-            }
+            val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+            try {
+                dpm.setLockTaskPackages(ComponentName(this, AdminReceiver::class.java), arrayOf(packageName))
+            } catch (_: SecurityException) {}
+        } catch (_: Exception) {}
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val alertNotification = NotificationCompat.Builder(this, "usage_tracker")
+            .setContentTitle("SafeKid")
+            .setContentText("Tiempo agotado — teléfono bloqueado")
+            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true)
+            .build()
+
+        nm.notify(1, alertNotification)
+
+        try {
             startActivity(intent)
         } catch (e: Exception) {
-            android.util.Log.e("SafeKid", "triggerBlock failed", e)
+            android.util.Log.e("SafeKid", "startActivity falló", e)
         }
     }
 }
