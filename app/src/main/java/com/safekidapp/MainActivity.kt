@@ -137,15 +137,18 @@ class MainActivity : AppCompatActivity() {
             prefs.edit()
                 .putBoolean("kiosk_active", false)
                 .putBoolean("time_exceeded", false)
+                .putBoolean("tracking_enabled", false)
                 .putLong("last_unlock_time", System.currentTimeMillis())
                 .apply()
 
+            stopService(Intent(this, UsageService::class.java))
             stopLockTask()
 
             val intent = Intent(this, SettingsActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             startActivity(intent)
+            finishAffinity()
         } catch (e: Exception) {
             Toast.makeText(this, "Error al desbloquear: ${e.message}", Toast.LENGTH_LONG).show()
         }
