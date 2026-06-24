@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     private var tapCount = 0
     private var tapTimer: Handler? = null
+    private var lockTaskStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,13 +30,26 @@ class MainActivity : AppCompatActivity() {
         enableFullScreen()
         setContentView(R.layout.activity_main)
 
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("kiosk_active", false)) {
-            startLockTask()
+        val tracker = UsageTracker(this)
+        if (tracker.isTimeExceeded()) {
+            findViewById<TextView>(R.id.tvTimeExceeded).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.tvBlockMessage).text = "El límite diario se ha alcanzado"
         }
 
         findViewById<View>(R.id.blockImage).setOnClickListener {
             handleTap()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("kiosk_active", false) && !lockTaskStarted) {
+            lockTaskStarted = true
+            try {
+                startLockTask()
+            } catch (_: SecurityException) {
+            }
         }
     }
 
@@ -119,7 +134,10 @@ class MainActivity : AppCompatActivity() {
     private fun unlockDevice() {
         try {
             val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putBoolean("kiosk_active", false).apply()
+            prefs.edit()
+                .putBoolean("kiosk_active", false)
+                .putBoolean("time_exceeded", false)
+                .apply()
 
             stopLockTask()
 

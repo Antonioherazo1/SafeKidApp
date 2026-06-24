@@ -4,19 +4,21 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import java.security.MessageDigest
-import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName
+    private lateinit var tracker: UsageTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,8 +26,26 @@ class SettingsActivity : AppCompatActivity() {
 
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, AdminReceiver::class.java)
+        tracker = UsageTracker(this)
 
+        updateUsageInfo()
         setupButtons()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUsageInfo()
+    }
+
+    private fun updateUsageInfo() {
+        val tvUsage = findViewById<TextView>(R.id.tvUsageInfo)
+        val used = tracker.getUsedMinutes()
+        val limit = tracker.getLimitMinutes()
+        if (limit > 0) {
+            tvUsage.text = "$used min usado de $limit min"
+        } else {
+            tvUsage.text = "$used min usado (sin límite)"
+        }
     }
 
     private fun setupButtons() {
@@ -61,9 +81,57 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<MaterialButton>(R.id.btnSetTimeLimit).setOnClickListener {
+            val text = findViewById<TextInputEditText>(R.id.etTimeLimit).text?.toString() ?: ""
+            val minutes = text.toIntOrNull()
+            if (minutes == null || minutes <= 0) {
+                Toast.makeText(this, "Ingresa un número válido de minutos", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            tracker.setDailyLimit(minutes)
+            updateUsageInfo()
+            Toast.makeText(this, "Límite establecido: $minutes min por día", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<MaterialButton>(R.id.btnResetUsage).setOnClickListener {
+            tracker.resetDaily()
+            updateUsageInfo()
+            Toast.makeText(this, "Uso de hoy reiniciado", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<MaterialButton>(R.id.btnStartTracking).setOnClickListener {
+            if (tracker.getDailyLimit() <= 0) {
+                Toast.makeText(this, "Primero establece un límite de tiempo", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            tracker.setTrackingEnabled(true)
+            tracker.resetDaily()
+            startUsageService()
+            Toast.makeText(this, "Control de tiempo iniciado", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<MaterialButton>(R.id.btnStopTracking).setOnClickListener {
+            tracker.setTrackingEnabled(false)
+            stopUsageService()
+            Toast.makeText(this, "Control de tiempo detenido", Toast.LENGTH_SHORT).show()
+        }
+
         findViewById<MaterialButton>(R.id.btnStartKiosk).setOnClickListener {
             startKioskMode()
         }
+    }
+
+    private fun startUsageService() {
+        val intent = Intent(this, UsageService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun stopUsageService() {
+        stopService(Intent(this, UsageService::class.java))
     }
 
     private fun startKioskMode() {
