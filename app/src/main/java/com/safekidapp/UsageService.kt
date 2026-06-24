@@ -295,13 +295,12 @@ class UsageService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        nm.notify(1, NotificationCompat.Builder(this, "usage_tracker")
-            .setContentTitle("SafeKid")
-            .setContentText("Tiempo agotado — teléfono bloqueado")
+        nm.notify(2, NotificationCompat.Builder(this, "usage_tracker")
+            .setContentTitle("SafeKid — Tiempo agotado")
+            .setContentText("La pantalla de bloqueo se abrirá")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setOngoing(true)
-            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
             .setFullScreenIntent(pendingIntent, true)
             .build())
 
