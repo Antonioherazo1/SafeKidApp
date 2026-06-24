@@ -155,6 +155,13 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnStartKiosk).setOnClickListener {
             startKioskMode()
         }
+
+        findViewById<MaterialButton>(R.id.btnExitAdmin).setOnClickListener {
+            val intent = Intent(this, HomeActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {

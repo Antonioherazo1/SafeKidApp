@@ -217,9 +217,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="32dp"
+            android:layout_marginTop="8dp"
             android:text="Iniciar bloqueo ahora"
             android:backgroundTint="#D32F2F" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="24dp"
+            android:background="#DDDDDD" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExitAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="32dp"
+            android:text="Salir del modo administrador"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:textColor="#D32F2F"
+            android:strokeColor="#D32F2F" />
 
     </LinearLayout>
 
