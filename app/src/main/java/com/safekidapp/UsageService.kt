@@ -295,12 +295,21 @@ class UsageService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            try {
+                alarmManager.setAlarmClock(
+                    android.app.AlarmManager.AlarmClockInfo(System.currentTimeMillis(), pendingIntent),
+                    pendingIntent
+                )
+            } catch (_: Exception) {}
+        }
+
         nm.notify(2, NotificationCompat.Builder(this, "usage_tracker")
             .setContentTitle("SafeKid — Tiempo agotado")
-            .setContentText("La pantalla de bloqueo se abrirá")
+            .setContentText("Bloqueando dispositivo...")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
             .setFullScreenIntent(pendingIntent, true)
             .build())
 
