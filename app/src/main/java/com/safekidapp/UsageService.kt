@@ -260,13 +260,14 @@ class UsageService : Service() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
-        handler.post {
-            try {
-                val intent = Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-            } catch (_: Exception) {}
+        try {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                putExtra("triggered_by_timeout", true)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("SafeKid", "triggerBlock failed", e)
         }
     }
 }
