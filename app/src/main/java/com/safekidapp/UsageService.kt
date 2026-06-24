@@ -12,11 +12,13 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import org.json.JSONObject
 
 class UsageService : Service() {
 
     private lateinit var tracker: UsageTracker
     private lateinit var nm: NotificationManager
+    private lateinit var mqttManager: MqttManager
     private val handler = Handler(Looper.getMainLooper())
     private var userPresent = false
     private var screenOn = false
@@ -55,6 +57,7 @@ class UsageService : Service() {
         super.onCreate()
         tracker = UsageTracker(this)
         nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        mqttManager = MqttManager(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -79,13 +82,64 @@ class UsageService : Service() {
             startPeriodicCheck()
         }
 
+        connectMqtt()
+
         startNotificationUpdater()
         return START_STICKY
+    }
+
+    private fun connectMqtt() {
+        mqttManager.connect { connected ->
+            if (connected) {
+                val deviceId = mqttManager.getDeviceId()
+                mqttManager.subscribe("safekid/child/$deviceId/commands")
+                mqttManager.addMessageListener { topic, message ->
+                    handleCommand(topic, message)
+                }
+            }
+        }
+    }
+
+    private fun handleCommand(topic: String, message: String) {
+        if (!topic.endsWith("/commands")) return
+        try {
+            val json = JSONObject(message)
+            val action = json.getString("action")
+            when (action) {
+                "set_limit" -> {
+                    val minutes = json.optInt("value", 0)
+                    if (minutes > 0) tracker.setDailyLimit(minutes)
+                }
+                "add_time" -> {
+                    val minutes = json.optInt("value", 0)
+                    if (minutes > 0) {
+                        val current = tracker.getDailyLimit()
+                        tracker.setDailyLimit((current / 60000).toInt() + minutes)
+                    }
+                }
+                "block" -> {
+                    val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+                    prefs.edit().putBoolean("kiosk_active", true).apply()
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                }
+                "unblock" -> {
+                    val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putBoolean("kiosk_active", false)
+                        .putBoolean("time_exceeded", false)
+                        .apply()
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
         stopPeriodicCheck()
         stopNotificationUpdater()
+        mqttManager.disconnect()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         super.onDestroy()
     }
@@ -114,6 +168,7 @@ class UsageService : Service() {
         stopNotificationUpdater()
         notifRunnable = Runnable {
             updateNotification()
+            publishStatus()
             handler.postDelayed(notifRunnable!!, 10000)
         }
         handler.postDelayed(notifRunnable!!, 1000)
@@ -122,6 +177,25 @@ class UsageService : Service() {
     private fun stopNotificationUpdater() {
         notifRunnable?.let { handler.removeCallbacks(it) }
         notifRunnable = null
+    }
+
+    private fun publishStatus() {
+        val used = tracker.getAccumulatedUsage()
+        val limit = tracker.getDailyLimit()
+        val remaining = if (limit > 0) (limit - used).coerceAtLeast(0) else -1
+        val locked = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+            .getBoolean("kiosk_active", false)
+
+        val json = JSONObject().apply {
+            put("used", used / 60000)
+            put("limit", limit / 60000)
+            put("remaining", remaining / 60000)
+            put("locked", locked)
+            put("timestamp", System.currentTimeMillis())
+        }
+
+        val deviceId = mqttManager.getDeviceId()
+        mqttManager.publish("safekid/child/$deviceId/status", json.toString())
     }
 
     private fun updateNotification() {

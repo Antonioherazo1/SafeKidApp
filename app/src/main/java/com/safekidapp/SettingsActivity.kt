@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -23,6 +25,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName
     private lateinit var tracker: UsageTracker
+    private lateinit var mqttManager: MqttManager
     private var dialogShown = false
     private var pendingTrackingStart = false
 
@@ -37,9 +40,11 @@ class SettingsActivity : AppCompatActivity() {
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, AdminReceiver::class.java)
         tracker = UsageTracker(this)
+        mqttManager = MqttManager(this)
 
         updateUsageInfo()
         setupButtons()
+        setupMqtt()
     }
 
     override fun onResume() {
@@ -79,6 +84,213 @@ class SettingsActivity : AppCompatActivity() {
             tvUsage.text = "$used min usado de $limit min"
         } else {
             tvUsage.text = "$used min usado (sin límite)"
+        }
+    }
+
+    private fun setupMqtt() {
+        val deviceId = mqttManager.getDeviceId()
+        findViewById<TextView>(R.id.tvDeviceId).text = deviceId
+
+        findViewById<TextInputEditText>(R.id.etBrokerUrl).setText(mqttManager.getBrokerUrl())
+
+        findViewById<MaterialButton>(R.id.btnSaveBroker).setOnClickListener {
+            val url = findViewById<TextInputEditText>(R.id.etBrokerUrl).text?.toString() ?: ""
+            if (url.isNotBlank()) {
+                mqttManager.setBrokerUrl(url)
+                Toast.makeText(this, "Broker guardado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        findViewById<MaterialButton>(R.id.btnPairWithParent).setOnClickListener {
+            val code = findViewById<TextInputEditText>(R.id.etPairingCode).text?.toString() ?: ""
+            if (code.length != 6) {
+                Toast.makeText(this, "Ingresa un código de 6 dígitos", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            findViewById<TextView>(R.id.tvPairingStatus).text = "Vinculando..."
+            mqttManager.pairWithParent(code, "Dispositivo") { success ->
+                runOnUiThread {
+                    if (success) {
+                        findViewById<TextView>(R.id.tvPairingStatus).text = "¡Vinculado con padre!"
+                        Toast.makeText(this, "Vinculado exitosamente", Toast.LENGTH_SHORT).show()
+                    } else {
+                        findViewById<TextView>(R.id.tvPairingStatus).text = "Error de conexión"
+                        Toast.makeText(this, "No se pudo conectar al broker", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
+        findViewById<MaterialButton>(R.id.btnGenerateCode).setOnClickListener {
+            mqttManager.connect { connected ->
+                if (connected) {
+                    val code = mqttManager.generatePairingCode()
+                    runOnUiThread {
+                        findViewById<TextView>(R.id.tvGeneratedCode).text = code
+                        Toast.makeText(this, "Código: $code", Toast.LENGTH_LONG).show()
+                    }
+                    mqttManager.listenForPairing { childId, childName ->
+                        runOnUiThread {
+                            Toast.makeText(this, "Hijo vinculado: $childName ($childId)", Toast.LENGTH_LONG).show()
+                            refreshChildrenList()
+                        }
+                    }
+                } else {
+                    runOnUiThread {
+                        Toast.makeText(this, "No se pudo conectar al broker", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
+        refreshChildrenList()
+    }
+
+    private fun refreshChildrenList() {
+        val container = findViewById<LinearLayout>(R.id.llChildrenList)
+        container.removeAllViews()
+
+        val children = mqttManager.getLinkedChildren()
+        if (children.isEmpty()) {
+            val tv = TextView(this).apply {
+                text = "Ningún hijo vinculado aún"
+                setTextColor(0xFF666666.toInt())
+                textSize = 14f
+            }
+            container.addView(tv)
+            return
+        }
+
+        for (childId in children) {
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(16, 12, 16, 12)
+                setBackgroundColor(0xFFF5F5F5.toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, 8) }
+            }
+
+            val tvId = TextView(this).apply {
+                text = "ID: $childId"
+                setTextColor(0xFF333333.toInt())
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+            }
+            card.addView(tvId)
+
+            val btnSetLimit = MaterialButton(this).apply {
+                text = "Cambiar límite"
+                setTextColor(0xFFFFFFFF.toInt())
+                setBackgroundColor(0xFF6200EE.toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 8, 0, 4) }
+                setOnClickListener {
+                    showSetLimitDialog(childId)
+                }
+            }
+            card.addView(btnSetLimit)
+
+            val btnAddTime = MaterialButton(this).apply {
+                text = "Agregar tiempo extra"
+                style = R.style.Widget_MaterialComponents_Button_OutlinedButton
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 4) }
+                setOnClickListener {
+                    showAddTimeDialog(childId)
+                }
+            }
+            card.addView(btnAddTime)
+
+            val btnBlock = MaterialButton(this).apply {
+                text = "Bloquear ahora"
+                setBackgroundColor(0xFFD32F2F.toInt())
+                setTextColor(0xFFFFFFFF.toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 4) }
+                setOnClickListener {
+                    sendCommand(childId, """{"action":"block"}""")
+                    Toast.makeText(this@SettingsActivity, "Comando de bloqueo enviado", Toast.LENGTH_SHORT).show()
+                }
+            }
+            card.addView(btnBlock)
+
+            val btnUnblock = MaterialButton(this).apply {
+                text = "Desbloquear"
+                style = R.style.Widget_MaterialComponents_Button_OutlinedButton
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 4) }
+                setOnClickListener {
+                    sendCommand(childId, """{"action":"unblock"}""")
+                    Toast.makeText(this@SettingsActivity, "Comando de desbloqueo enviado", Toast.LENGTH_SHORT).show()
+                }
+            }
+            card.addView(btnUnblock)
+
+            container.addView(card)
+        }
+    }
+
+    private fun showSetLimitDialog(childId: String) {
+        val input = TextInputEditText(this).apply {
+            hint = "Minutos"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setPadding(48, 16, 48, 16)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Establecer límite")
+            .setMessage("Nuevo límite en minutos para $childId")
+            .setView(input)
+            .setPositiveButton("Enviar") { _, _ ->
+                val mins = input.text?.toString()?.toIntOrNull()
+                if (mins != null && mins > 0) {
+                    sendCommand(childId, """{"action":"set_limit","value":$mins}""")
+                    Toast.makeText(this, "Límite enviado: $mins min", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun showAddTimeDialog(childId: String) {
+        val input = TextInputEditText(this).apply {
+            hint = "Minutos extra"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setPadding(48, 16, 48, 16)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Agregar tiempo")
+            .setMessage("Minutos extra para $childId")
+            .setView(input)
+            .setPositiveButton("Enviar") { _, _ ->
+                val mins = input.text?.toString()?.toIntOrNull()
+                if (mins != null && mins > 0) {
+                    sendCommand(childId, """{"action":"add_time","value":$mins}""")
+                    Toast.makeText(this, "Tiempo agregado: $mins min", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun sendCommand(childId: String, payload: String) {
+        mqttManager.connect { connected ->
+            if (connected) {
+                mqttManager.publish("safekid/child/$childId/commands", payload)
+            } else {
+                runOnUiThread {
+                    Toast.makeText(this, "Error de conexión MQTT", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
