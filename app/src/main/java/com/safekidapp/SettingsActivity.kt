@@ -1,15 +1,19 @@
 package com.safekidapp
 
+import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import java.security.MessageDigest
@@ -20,6 +24,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var adminComponent: ComponentName
     private lateinit var tracker: UsageTracker
     private var dialogShown = false
+    private var pendingTrackingStart = false
+
+    companion object {
+        private const val NOTIFICATION_PERMISSION_CODE = 100
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,10 +138,12 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, "Primero establece un límite de tiempo", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
-            tracker.setTrackingEnabled(true)
-            tracker.resetDaily()
-            startUsageService()
-            Toast.makeText(this, "Control de tiempo iniciado", Toast.LENGTH_SHORT).show()
+            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                pendingTrackingStart = true
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
+                return@setOnClickListener
+            }
+            startTracking()
         }
 
         findViewById<MaterialButton>(R.id.btnStopTracking).setOnClickListener {
@@ -144,6 +155,26 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnStartKiosk).setOnClickListener {
             startKioskMode()
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == NOTIFICATION_PERMISSION_CODE && pendingTrackingStart) {
+            pendingTrackingStart = false
+            startTracking()
+        }
+    }
+
+    private fun startTracking() {
+        if (tracker.getDailyLimit() <= 0) {
+            Toast.makeText(this, "Primero establece un límite de tiempo", Toast.LENGTH_LONG).show()
+            return
+        }
+        tracker.setTrackingEnabled(true)
+        tracker.resetDaily()
+        startUsageService()
+        updateUsageInfo()
+        Toast.makeText(this, "Control de tiempo iniciado", Toast.LENGTH_SHORT).show()
     }
 
     private fun startUsageService() {
