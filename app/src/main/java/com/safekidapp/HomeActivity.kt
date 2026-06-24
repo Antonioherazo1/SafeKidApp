@@ -46,9 +46,9 @@ class HomeActivity : AppCompatActivity() {
         stopAutoUpdate()
         updateRunnable = Runnable {
             updateDisplay()
-            handler.postDelayed(updateRunnable!!, 10000)
+            handler.postDelayed(updateRunnable!!, 2000)
         }
-        handler.postDelayed(updateRunnable!!, 10000)
+        handler.postDelayed(updateRunnable!!, 500)
     }
 
     private fun stopAutoUpdate() {
@@ -74,9 +74,8 @@ class HomeActivity : AppCompatActivity() {
         }
 
         val used = tracker.getAccumulatedUsage()
-        val currentSession = System.currentTimeMillis() - tracker.getScreenOnTimestamp()
-        val sessionMs = if (tracker.getScreenOnTimestamp() > 0) currentSession else 0
-        val total = used + if (sessionMs > 0 && sessionMs < 60000 * 60) sessionMs else 0
+        val currentSession = if (tracker.getScreenOnTimestamp() > 0) System.currentTimeMillis() - tracker.getScreenOnTimestamp() else 0
+        val total = used + if (currentSession in 1..3600000) currentSession else 0
 
         if (total >= limit) {
             tvTime.text = "Agotado"
@@ -84,18 +83,17 @@ class HomeActivity : AppCompatActivity() {
             return
         }
 
-        val remainingMin = (limit - total) / 60000
+        val remaining = limit - total
+        val hours = remaining / 3600000
+        val minutes = (remaining % 3600000) / 60000
+        val seconds = (remaining % 60000) / 1000
 
-        when {
-            remainingMin < 1L -> { tvTime.text = "< 1 min"; tvStatus.text = "Tiempo por agotarse" }
-            remainingMin == 1L -> { tvTime.text = "1 min"; tvStatus.text = "1 minuto restante" }
-            remainingMin < 60L -> { tvTime.text = "$remainingMin min"; tvStatus.text = "$remainingMin minutos restantes" }
-            else -> {
-                val h = remainingMin / 60
-                val m = remainingMin % 60
-                tvTime.text = "${h}h ${m}m"
-                tvStatus.text = "${h}h ${m}m restantes"
-            }
+        if (hours > 0) {
+            tvTime.text = String.format("%d:%02d:%02d", hours, minutes, seconds)
+            tvStatus.text = "${hours}h restantes"
+        } else {
+            tvTime.text = String.format("%02d:%02d", minutes, seconds)
+            tvStatus.text = "${minutes}m ${seconds}s restantes"
         }
     }
 

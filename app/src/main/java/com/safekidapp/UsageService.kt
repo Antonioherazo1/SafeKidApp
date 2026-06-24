@@ -18,24 +18,31 @@ class UsageService : Service() {
     private lateinit var tracker: UsageTracker
     private lateinit var nm: NotificationManager
     private val handler = Handler(Looper.getMainLooper())
+    private var userPresent = false
     private var screenOn = false
     private var checkRunnable: Runnable? = null
     private var notifRunnable: Runnable? = null
 
-    private val screenReceiver = object : BroadcastReceiver() {
+    private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_ON -> {
                     screenOn = true
-                    tracker.setScreenOnTimestamp(System.currentTimeMillis())
-                    startPeriodicCheck()
+                }
+                Intent.ACTION_USER_PRESENT -> {
+                    userPresent = true
+                    if (screenOn) {
+                        tracker.setScreenOnTimestamp(System.currentTimeMillis())
+                        startPeriodicCheck()
+                    }
                 }
                 Intent.ACTION_SCREEN_OFF -> {
                     screenOn = false
+                    userPresent = false
                     stopPeriodicCheck()
-                    val onTimestamp = tracker.getScreenOnTimestamp()
-                    if (onTimestamp > 0) {
-                        tracker.addUsage(System.currentTimeMillis() - onTimestamp)
+                    val ts = tracker.getScreenOnTimestamp()
+                    if (ts > 0) {
+                        tracker.addUsage(System.currentTimeMillis() - ts)
                         tracker.setScreenOnTimestamp(0)
                     }
                     checkTimeLimit()
@@ -57,24 +64,18 @@ class UsageService : Service() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_USER_PRESENT)
         }
-        registerReceiver(screenReceiver, filter)
+        registerReceiver(receiver, filter)
 
-        screenOn = true
-        tracker.setScreenOnTimestamp(System.currentTimeMillis())
-        startPeriodicCheck()
         startNotificationUpdater()
-
         return START_STICKY
     }
 
     override fun onDestroy() {
         stopPeriodicCheck()
         stopNotificationUpdater()
-        try {
-            unregisterReceiver(screenReceiver)
-        } catch (_: Exception) {
-        }
+        try { unregisterReceiver(receiver) } catch (_: Exception) {}
         super.onDestroy()
     }
 
@@ -82,10 +83,7 @@ class UsageService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "usage_tracker", "SafeKid",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
+            val channel = NotificationChannel("usage_tracker", "SafeKid", NotificationManager.IMPORTANCE_LOW).apply {
                 setSound(null, null)
                 enableVibration(false)
             }
@@ -105,7 +103,7 @@ class UsageService : Service() {
         stopNotificationUpdater()
         notifRunnable = Runnable {
             updateNotification()
-            handler.postDelayed(notifRunnable!!, 30000)
+            handler.postDelayed(notifRunnable!!, 10000)
         }
         handler.postDelayed(notifRunnable!!, 1000)
     }
@@ -116,33 +114,37 @@ class UsageService : Service() {
     }
 
     private fun updateNotification() {
+        val text = formatRemaining()
+        nm.notify(1, buildNotificationText(text))
+    }
+
+    private fun formatRemaining(): String {
         val limit = tracker.getDailyLimit()
         val used = tracker.getAccumulatedUsage()
-        val currentSession = if (screenOn) {
+        val currentSession = if (userPresent && screenOn) {
             val ts = tracker.getScreenOnTimestamp()
             if (ts > 0) System.currentTimeMillis() - ts else 0
         } else 0
         val total = used + currentSession
 
-        val text = if (limit <= 0) {
-            "Control activo (sin límite)"
-        } else if (total >= limit) {
-            "Tiempo agotado"
-        } else {
-            val remaining = (limit - total) / 60000
-            if (remaining < 1L) "Menos de 1 min restante"
-            else if (remaining == 1L) "1 min restante"
-            else "$remaining min restantes"
+        return when {
+            limit <= 0 -> "Control activo (sin límite)"
+            total >= limit -> "Tiempo agotado"
+            else -> {
+                val remaining = limit - total
+                val min = remaining / 60000
+                val sec = (remaining % 60000) / 1000
+                if (min > 0) "${min}m ${sec}s restantes"
+                else "${sec}s restantes"
+            }
         }
-
-        nm.notify(1, buildNotificationText(text))
     }
 
     private fun startPeriodicCheck() {
         stopPeriodicCheck()
         checkRunnable = Runnable {
             checkTimeLimit()
-            if (screenOn) {
+            if (userPresent && screenOn) {
                 handler.postDelayed(checkRunnable!!, 10000)
             }
         }
@@ -159,15 +161,14 @@ class UsageService : Service() {
         val limit = tracker.getDailyLimit()
         if (limit <= 0) return
 
-        val currentSession = if (screenOn) {
+        val currentSession = if (userPresent && screenOn) {
             val ts = tracker.getScreenOnTimestamp()
             if (ts > 0) System.currentTimeMillis() - ts else 0
         } else 0
 
         if (tracker.getAccumulatedUsage() + currentSession >= limit) {
             val lastUnlock = prefs.getLong("last_unlock_time", 0)
-            val graceMs = 3 * 60 * 1000L
-            if (System.currentTimeMillis() - lastUnlock < graceMs) return
+            if (System.currentTimeMillis() - lastUnlock < 3 * 60 * 1000L) return
 
             tracker.setTimeExceeded(true)
             triggerBlock()
