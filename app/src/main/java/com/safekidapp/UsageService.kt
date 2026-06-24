@@ -68,6 +68,17 @@ class UsageService : Service() {
         }
         registerReceiver(receiver, filter)
 
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        val km = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
+
+        screenOn = pm.isInteractive
+        userPresent = !km.isKeyguardLocked
+
+        if (screenOn && userPresent) {
+            tracker.setScreenOnTimestamp(System.currentTimeMillis())
+            startPeriodicCheck()
+        }
+
         startNotificationUpdater()
         return START_STICKY
     }
