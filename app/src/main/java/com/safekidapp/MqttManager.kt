@@ -61,7 +61,7 @@ class MqttManager(private val context: Context) {
                     isAutomaticReconnect = true
                     connectionTimeout = 10
                     keepAliveInterval = 30
-                    cleanSession = true
+                    setCleanSession(true)
                 }
                 client?.connect(options)
                 client?.setCallback(object : MqttCallback {
