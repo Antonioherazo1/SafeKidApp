@@ -194,9 +194,8 @@ class SettingsActivity : AppCompatActivity() {
             }
             card.addView(btnSetLimit)
 
-            val btnAddTime = MaterialButton(this).apply {
+            val btnAddTime = MaterialButton(this, null, 0, R.style.Widget_MaterialComponents_Button_OutlinedButton).apply {
                 text = "Agregar tiempo extra"
-                style = R.style.Widget_MaterialComponents_Button_OutlinedButton
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -222,9 +221,8 @@ class SettingsActivity : AppCompatActivity() {
             }
             card.addView(btnBlock)
 
-            val btnUnblock = MaterialButton(this).apply {
+            val btnUnblock = MaterialButton(this, null, 0, R.style.Widget_MaterialComponents_Button_OutlinedButton).apply {
                 text = "Desbloquear"
-                style = R.style.Widget_MaterialComponents_Button_OutlinedButton
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
