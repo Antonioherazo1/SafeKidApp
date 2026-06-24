@@ -63,10 +63,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("kiosk_active", false)) {
+            try {
+                startLockTask()
+            } catch (_: SecurityException) {
+            }
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+        }
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             enableFullScreen()
+        }
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (!hasFocus && prefs.getBoolean("kiosk_active", false)) {
+            try {
+                startLockTask()
+            } catch (_: SecurityException) {
+            }
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
         }
     }
 

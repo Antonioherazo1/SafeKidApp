@@ -22,6 +22,7 @@
             android:name=".MainActivity"
             android:excludeFromRecents="true"
             android:exported="false"
+            android:lockTaskMode="if_whitelisted"
             android:showOnLockScreen="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true" />

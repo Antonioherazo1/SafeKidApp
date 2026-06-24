@@ -168,6 +168,7 @@ class UsageService : Service() {
             updateNotification()
             publishStatus()
             checkTimeLimit()
+            ensureBlockActive()
             handler.postDelayed(notifRunnable!!, 10000)
         }
         handler.postDelayed(notifRunnable!!, 1000)
@@ -240,6 +241,17 @@ class UsageService : Service() {
         checkRunnable = null
     }
 
+    private fun ensureBlockActive() {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("kiosk_active", false)) return
+        try {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
     private fun checkTimeLimit() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val limit = tracker.getDailyLimit()
@@ -266,12 +278,13 @@ class UsageService : Service() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
-        try {
-            val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+        val adminComponent = ComponentName(this, AdminReceiver::class.java)
+        if (dpm.isAdminActive(adminComponent)) {
             try {
-                dpm.setLockTaskPackages(ComponentName(this, AdminReceiver::class.java), arrayOf(packageName))
+                dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
             } catch (_: SecurityException) {}
-        } catch (_: Exception) {}
+        }
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -282,7 +295,7 @@ class UsageService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val alertNotification = NotificationCompat.Builder(this, "usage_tracker")
+        nm.notify(1, NotificationCompat.Builder(this, "usage_tracker")
             .setContentTitle("SafeKid")
             .setContentText("Tiempo agotado — teléfono bloqueado")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
@@ -290,9 +303,7 @@ class UsageService : Service() {
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .setFullScreenIntent(pendingIntent, true)
-            .build()
-
-        nm.notify(1, alertNotification)
+            .build())
 
         try {
             startActivity(intent)
