@@ -137,6 +137,7 @@ class MainActivity : AppCompatActivity() {
             prefs.edit()
                 .putBoolean("kiosk_active", false)
                 .putBoolean("time_exceeded", false)
+                .putLong("last_unlock_time", System.currentTimeMillis())
                 .apply()
 
             stopLockTask()

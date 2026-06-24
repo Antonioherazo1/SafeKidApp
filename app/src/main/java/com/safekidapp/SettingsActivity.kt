@@ -19,6 +19,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName
     private lateinit var tracker: UsageTracker
+    private var dialogShown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +36,30 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUsageInfo()
+        if (!dialogShown && tracker.getDailyLimit() > 0 && tracker.getAccumulatedUsage() >= tracker.getDailyLimit()) {
+            dialogShown = true
+            showTimeExceededDialog()
+        }
+    }
+
+    private fun showTimeExceededDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Tiempo agotado")
+            .setMessage("El límite diario de ${tracker.getLimitMinutes()} minutos se ha alcanzado.\n\n" +
+                    "Puedes agregar más tiempo o reiniciar el contador de hoy.")
+            .setPositiveButton("Agregar 15 min") { _, _ ->
+                val newLimit = tracker.getLimitMinutes() + 15
+                tracker.setDailyLimit(newLimit)
+                updateUsageInfo()
+                Toast.makeText(this, "Límite extendido a $newLimit min", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Reiniciar hoy") { _, _ ->
+                tracker.resetDaily()
+                updateUsageInfo()
+                Toast.makeText(this, "Contador reiniciado", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("Cerrar", null)
+            .show()
     }
 
     private fun updateUsageInfo() {

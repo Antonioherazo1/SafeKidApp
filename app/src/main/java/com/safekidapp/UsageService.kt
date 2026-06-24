@@ -16,9 +16,11 @@ import androidx.core.app.NotificationCompat
 class UsageService : Service() {
 
     private lateinit var tracker: UsageTracker
+    private lateinit var nm: NotificationManager
     private val handler = Handler(Looper.getMainLooper())
     private var screenOn = false
     private var checkRunnable: Runnable? = null
+    private var notifRunnable: Runnable? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -45,11 +47,12 @@ class UsageService : Service() {
     override fun onCreate() {
         super.onCreate()
         tracker = UsageTracker(this)
+        nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createNotificationChannel()
-        startForeground(1, buildNotification())
+        startForeground(1, buildNotificationText("Iniciando..."))
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
@@ -60,12 +63,14 @@ class UsageService : Service() {
         screenOn = true
         tracker.setScreenOnTimestamp(System.currentTimeMillis())
         startPeriodicCheck()
+        startNotificationUpdater()
 
         return START_STICKY
     }
 
     override fun onDestroy() {
         stopPeriodicCheck()
+        stopNotificationUpdater()
         try {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) {
@@ -84,18 +89,54 @@ class UsageService : Service() {
                 setSound(null, null)
                 enableVibration(false)
             }
-            val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
         }
     }
 
-    private fun buildNotification() = NotificationCompat.Builder(this, "usage_tracker")
+    private fun buildNotificationText(text: String) = NotificationCompat.Builder(this, "usage_tracker")
         .setContentTitle("SafeKid")
-        .setContentText("Controlando tiempo de uso")
+        .setContentText(text)
         .setSmallIcon(android.R.drawable.ic_lock_lock)
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setOngoing(true)
         .build()
+
+    private fun startNotificationUpdater() {
+        stopNotificationUpdater()
+        notifRunnable = Runnable {
+            updateNotification()
+            handler.postDelayed(notifRunnable!!, 30000)
+        }
+        handler.postDelayed(notifRunnable!!, 1000)
+    }
+
+    private fun stopNotificationUpdater() {
+        notifRunnable?.let { handler.removeCallbacks(it) }
+        notifRunnable = null
+    }
+
+    private fun updateNotification() {
+        val limit = tracker.getDailyLimit()
+        val used = tracker.getAccumulatedUsage()
+        val currentSession = if (screenOn) {
+            val ts = tracker.getScreenOnTimestamp()
+            if (ts > 0) System.currentTimeMillis() - ts else 0
+        } else 0
+        val total = used + currentSession
+
+        val text = if (limit <= 0) {
+            "Control activo (sin límite)"
+        } else if (total >= limit) {
+            "Tiempo agotado"
+        } else {
+            val remaining = (limit - total) / 60000
+            if (remaining < 1) "Menos de 1 min restante"
+            else if (remaining == 1) "1 min restante"
+            else "$remaining min restantes"
+        }
+
+        nm.notify(1, buildNotificationText(text))
+    }
 
     private fun startPeriodicCheck() {
         stopPeriodicCheck()
@@ -114,6 +155,7 @@ class UsageService : Service() {
     }
 
     private fun checkTimeLimit() {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val limit = tracker.getDailyLimit()
         if (limit <= 0) return
 
@@ -123,6 +165,10 @@ class UsageService : Service() {
         } else 0
 
         if (tracker.getAccumulatedUsage() + currentSession >= limit) {
+            val lastUnlock = prefs.getLong("last_unlock_time", 0)
+            val graceMs = 3 * 60 * 1000L
+            if (System.currentTimeMillis() - lastUnlock < graceMs) return
+
             tracker.setTimeExceeded(true)
             triggerBlock()
         }
