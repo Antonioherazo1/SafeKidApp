@@ -82,17 +82,17 @@ class SettingsActivity : AppCompatActivity() {
 
         try {
             dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
+        } catch (_: SecurityException) {
+        }
+
+        try {
+            startLockTask()
         } catch (e: SecurityException) {
-            showAdbInstructions()
-            return
-        } catch (e: Exception) {
-            showAdbInstructions()
+            showAdbDialog()
             return
         }
 
         prefs.edit().putBoolean("kiosk_active", true).apply()
-
-        startLockTask()
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -100,12 +100,12 @@ class SettingsActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    private fun showAdbInstructions() {
+    private fun showAdbDialog() {
         AlertDialog.Builder(this)
             .setTitle("Permiso requerido")
-            .setMessage("Tu dispositivo no autorizó automáticamente el modo bloqueo.\n\n" +
+            .setMessage("Tu dispositivo necesita una autorización.\n\n" +
                     "Conecta el celular al PC por USB (con depuración USB activada) y ejecuta:\n\n" +
-                    "adb shell dpm set-lock-task-packages com.safekidapp\n\n" +
+                    "adb shell settings put global device_policy_lock_task_packages com.safekidapp\n\n" +
                     "Luego presiona 'Reintentar'.")
             .setPositiveButton("Reintentar") { _, _ -> startKioskMode() }
             .setNegativeButton("Cancelar", null)
