@@ -24,6 +24,15 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (!prefs.contains("password_hash")) {
+            startActivity(Intent(this, SettingsActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            })
+            finish()
+            return
+        }
+
         tracker = UsageTracker(this)
 
         findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
