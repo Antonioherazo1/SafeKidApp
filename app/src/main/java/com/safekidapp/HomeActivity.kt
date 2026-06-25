@@ -37,14 +37,14 @@ class HomeActivity : AppCompatActivity() {
 
         tracker = UsageTracker(this)
 
-        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${getDeviceId()}"
+        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${loadDeviceId()}"
 
         findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
             showPasswordDialog()
         }
     }
 
-    private fun getDeviceId(): String {
+    private fun loadDeviceId(): String {
         var id = prefs.getString("device_id", null)
         if (id == null) {
             id = java.util.UUID.randomUUID().toString().take(8)
