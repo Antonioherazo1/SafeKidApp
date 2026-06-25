@@ -17,6 +17,7 @@ import java.security.MessageDigest
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var tracker: UsageTracker
+    private lateinit var mqttManager: MqttManager
     private val handler = Handler(Looper.getMainLooper())
     private var updateRunnable: Runnable? = null
 
@@ -34,6 +35,9 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tracker = UsageTracker(this)
+        mqttManager = MqttManager(this)
+
+        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${mqttManager.getDeviceId()}"
 
         findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
             showPasswordDialog()
@@ -68,26 +72,54 @@ class HomeActivity : AppCompatActivity() {
     private fun updateDisplay() {
         val tvTime = findViewById<TextView>(R.id.tvHomeRemainingTime)
         val tvStatus = findViewById<TextView>(R.id.tvHomeStatus)
+        val tvTracking = findViewById<TextView>(R.id.tvTrackingStatus)
+        val tvTimeLimit = findViewById<TextView>(R.id.tvTimeLimit)
+        val tvTimeUsed = findViewById<TextView>(R.id.tvTimeUsed)
+        val tvBlock = findViewById<TextView>(R.id.tvBlockStatus)
 
-        if (!tracker.isTrackingEnabled()) {
-            tvTime.text = "Inactivo"
-            tvStatus.text = "Control de tiempo desactivado"
-            return
-        }
-
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val tracking = tracker.isTrackingEnabled()
+        val blocked = prefs.getBoolean("kiosk_active", false)
         val limit = tracker.getDailyLimit()
-        if (limit <= 0) {
-            tvTime.text = "Sin límite"
-            tvStatus.text = "Tiempo de uso sin restricción"
-            return
-        }
-
         val used = tracker.getAccumulatedUsage()
         val currentSession = if (tracker.getScreenOnTimestamp() > 0) System.currentTimeMillis() - tracker.getScreenOnTimestamp() else 0
         val total = used + if (currentSession in 1..3600000) currentSession else 0
 
+        tvTracking.text = if (tracking) "Activo" else "Desactivado"
+        tvTracking.setTextColor(if (tracking) 0xFF4CAF50.toInt() else 0xFFFF5252.toInt())
+
+        tvTimeLimit.text = if (limit > 0) "${limit / 60000} minutos" else "Sin límite"
+
+        tvTimeUsed.text = formatTime(used)
+
+        if (blocked) {
+            tvTime.text = "BLOQUEADO"
+            tvTime.setTextColor(0xFFFF5252.toInt())
+            tvStatus.text = "El dispositivo está bloqueado"
+            tvBlock.text = "BLOQUEADO"
+            tvBlock.setTextColor(0xFFFF5252.toInt())
+            return
+        }
+        tvBlock.text = "Desbloqueado"
+        tvBlock.setTextColor(0xFF4CAF50.toInt())
+
+        if (!tracking) {
+            tvTime.text = "Inactivo"
+            tvTime.setTextColor(0xFFB0B0B0.toInt())
+            tvStatus.text = "Control de tiempo desactivado"
+            return
+        }
+
+        if (limit <= 0) {
+            tvTime.text = "Sin límite"
+            tvTime.setTextColor(0xFF4CAF50.toInt())
+            tvStatus.text = "Sin restricción de tiempo"
+            return
+        }
+
         if (total >= limit) {
             tvTime.text = "Agotado"
+            tvTime.setTextColor(0xFFFF5252.toInt())
             tvStatus.text = "Límite diario alcanzado"
             return
         }
@@ -97,6 +129,7 @@ class HomeActivity : AppCompatActivity() {
         val minutes = (remaining % 3600000) / 60000
         val seconds = (remaining % 60000) / 1000
 
+        tvTime.setTextColor(0xFFFFFFFF.toInt())
         if (hours > 0) {
             tvTime.text = String.format("%d:%02d:%02d", hours, minutes, seconds)
             tvStatus.text = "${hours}h restantes"
@@ -104,6 +137,12 @@ class HomeActivity : AppCompatActivity() {
             tvTime.text = String.format("%02d:%02d", minutes, seconds)
             tvStatus.text = "${minutes}m ${seconds}s restantes"
         }
+    }
+
+    private fun formatTime(ms: Long): String {
+        val h = ms / 3600000
+        val m = (ms % 3600000) / 60000
+        return if (h > 0) "${h}h ${m}m" else "${m} minutos"
     }
 
     private fun showPasswordDialog() {
