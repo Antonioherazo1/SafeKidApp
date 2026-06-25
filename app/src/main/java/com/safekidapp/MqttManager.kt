@@ -13,6 +13,7 @@ class MqttManager(private val context: Context) {
     private val listeners = mutableListOf<(String, String) -> Unit>()
     private val statusListeners = mutableListOf<(String, String) -> Unit>()
     private val executor = Executors.newSingleThreadExecutor()
+    private val subscribedTopics = mutableSetOf<String>()
 
     fun getDeviceId(): String {
         var id = prefs.getString("device_id", null)
@@ -47,6 +48,8 @@ class MqttManager(private val context: Context) {
         prefs.edit().putStringSet("linked_children", children).apply()
     }
 
+    private fun getClientId(): String = "safekid_${getDeviceId()}"
+
     fun connect(callback: (Boolean) -> Unit) {
         executor.execute {
             try {
@@ -54,18 +57,25 @@ class MqttManager(private val context: Context) {
                     callback(true)
                     return@execute
                 }
+                try {
+                    client?.disconnect()
+                    client?.close()
+                } catch (_: Exception) {}
+                client = null
+
                 val brokerUrl = getBrokerUrl()
-                val clientId = "safekid_${getDeviceId()}_${(1000..9999).random()}"
+                val clientId = getClientId()
                 val tempDir = context.cacheDir.absolutePath
                 client = MqttClient(brokerUrl, clientId, MqttDefaultFilePersistence(tempDir))
-                val options = MqttConnectOptions().apply {
-                    isAutomaticReconnect = true
-                    connectionTimeout = 10
-                    keepAliveInterval = 30
-                    setCleanSession(true)
-                }
-                client?.connect(options)
-                client?.setCallback(object : MqttCallback {
+
+                client?.setCallback(object : MqttCallbackExtended {
+                    override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                        if (reconnect) {
+                            subscribedTopics.forEach { topic ->
+                                try { client?.subscribe(topic, 2) } catch (_: Exception) {}
+                            }
+                        }
+                    }
                     override fun connectionLost(cause: Throwable?) {}
                     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
                     override fun messageArrived(topic: String?, message: MqttMessage?) {
@@ -78,6 +88,14 @@ class MqttManager(private val context: Context) {
                         }
                     }
                 })
+
+                val options = MqttConnectOptions().apply {
+                    isAutomaticReconnect = true
+                    connectionTimeout = 10
+                    keepAliveInterval = 30
+                    setCleanSession(true)
+                }
+                client?.connect(options)
                 callback(true)
             } catch (e: Exception) {
                 callback(false)
@@ -92,6 +110,7 @@ class MqttManager(private val context: Context) {
                 client?.close()
             } catch (_: Exception) {}
             client = null
+            subscribedTopics.clear()
         }
     }
 
@@ -106,10 +125,22 @@ class MqttManager(private val context: Context) {
     }
 
     fun subscribe(topic: String) {
+        subscribedTopics.add(topic)
         executor.execute {
             try {
                 if (client?.isConnected == true) {
                     client?.subscribe(topic, 2)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun unsubscribe(topic: String) {
+        subscribedTopics.remove(topic)
+        executor.execute {
+            try {
+                if (client?.isConnected == true) {
+                    client?.unsubscribe(topic)
                 }
             } catch (_: Exception) {}
         }

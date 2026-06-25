@@ -118,9 +118,11 @@ class UsageService : Service() {
             if (connected) {
                 val deviceId = mqttManager.getDeviceId()
                 mqttManager.subscribe("safekid/child/$deviceId/commands")
-                mqttManager.addMessageListener { topic, message ->
-                    handleCommand(topic, message)
-                }
+            }
+        }
+        mqttManager.addMessageListener { topic, message ->
+            if (topic.endsWith("/commands")) {
+                handleCommand(topic, message)
             }
         }
     }
