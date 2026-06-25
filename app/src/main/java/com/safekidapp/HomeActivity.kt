@@ -17,7 +17,7 @@ import java.security.MessageDigest
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var tracker: UsageTracker
-    private lateinit var mqttManager: MqttManager
+    private lateinit var prefs: android.content.SharedPreferences
     private val handler = Handler(Looper.getMainLooper())
     private var updateRunnable: Runnable? = null
 
@@ -25,7 +25,8 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+
         if (!prefs.contains("password_hash")) {
             startActivity(Intent(this, SettingsActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -35,13 +36,21 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tracker = UsageTracker(this)
-        mqttManager = MqttManager(this)
 
-        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${mqttManager.getDeviceId()}"
+        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${getDeviceId()}"
 
         findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
             showPasswordDialog()
         }
+    }
+
+    private fun getDeviceId(): String {
+        var id = prefs.getString("device_id", null)
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString().take(8)
+            prefs.edit().putString("device_id", id).apply()
+        }
+        return id
     }
 
     override fun onResume() {
@@ -78,11 +87,10 @@ class HomeActivity : AppCompatActivity() {
         val tvBlock = findViewById<TextView>(R.id.tvBlockStatus)
         val tvMqtt = findViewById<TextView>(R.id.tvMqttStatus)
 
-        val connected = mqttManager.isMqttConnected()
+        val connected = prefs.getBoolean("mqtt_connected", false)
         tvMqtt.text = if (connected) "MQTT: Conectado ✓" else "MQTT: Desconectado ✗"
         tvMqtt.setTextColor(if (connected) 0xFF4CAF50.toInt() else 0xFFFF5252.toInt())
 
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val tracking = tracker.isTrackingEnabled()
         val blocked = prefs.getBoolean("kiosk_active", false)
         val limit = tracker.getDailyLimit()
