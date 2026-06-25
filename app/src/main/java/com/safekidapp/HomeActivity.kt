@@ -37,20 +37,9 @@ class HomeActivity : AppCompatActivity() {
 
         tracker = UsageTracker(this)
 
-        findViewById<TextView>(R.id.tvDeviceId).text = "ID: ${loadDeviceId()}"
-
         findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
             showPasswordDialog()
         }
-    }
-
-    private fun loadDeviceId(): String {
-        var id = prefs.getString("device_id", null)
-        if (id == null) {
-            id = java.util.UUID.randomUUID().toString().take(8)
-            prefs.edit().putString("device_id", id).apply()
-        }
-        return id
     }
 
     override fun onResume() {
@@ -85,11 +74,6 @@ class HomeActivity : AppCompatActivity() {
         val tvTimeLimit = findViewById<TextView>(R.id.tvTimeLimit)
         val tvTimeUsed = findViewById<TextView>(R.id.tvTimeUsed)
         val tvBlock = findViewById<TextView>(R.id.tvBlockStatus)
-        val tvMqtt = findViewById<TextView>(R.id.tvMqttStatus)
-
-        val connected = prefs.getBoolean("mqtt_connected", false)
-        tvMqtt.text = if (connected) "MQTT: Conectado ✓" else "MQTT: Desconectado ✗"
-        tvMqtt.setTextColor(if (connected) 0xFF4CAF50.toInt() else 0xFFFF5252.toInt())
 
         val tracking = tracker.isTrackingEnabled()
         val blocked = prefs.getBoolean("kiosk_active", false)

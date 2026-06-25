@@ -22,13 +22,11 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
-import org.json.JSONObject
 
 class UsageService : Service() {
 
     private lateinit var tracker: UsageTracker
     private lateinit var nm: NotificationManager
-    private lateinit var mqttManager: MqttManager
     private val handler = Handler(Looper.getMainLooper())
     private var userPresent = false
     private var screenOn = false
@@ -76,7 +74,6 @@ class UsageService : Service() {
         super.onCreate()
         tracker = UsageTracker(this)
         nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mqttManager = MqttManager(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -101,8 +98,6 @@ class UsageService : Service() {
             startPeriodicCheck()
         }
 
-        connectMqtt()
-
         startNotificationUpdater()
 
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
@@ -113,75 +108,9 @@ class UsageService : Service() {
         return START_STICKY
     }
 
-    private fun connectMqtt() {
-        mqttManager.connect { connected ->
-            if (connected) {
-                val deviceId = mqttManager.getDeviceId()
-                mqttManager.subscribe("safekid/child/$deviceId/commands")
-            }
-        }
-        mqttManager.addMessageListener { topic, message ->
-            if (topic.endsWith("/commands")) {
-                handleCommand(topic, message)
-            }
-        }
-    }
-
-    private fun handleCommand(topic: String, message: String) {
-        if (!topic.endsWith("/commands")) return
-        try {
-            val json = JSONObject(message)
-            val action = json.getString("action")
-            when (action) {
-                "set_limit" -> {
-                    val minutes = json.optInt("value", 0)
-                    if (minutes > 0) tracker.setDailyLimit(minutes)
-                }
-                "add_time" -> {
-                    val minutes = json.optInt("value", 0)
-                    if (minutes > 0) {
-                        val current = tracker.getDailyLimit()
-                        tracker.setDailyLimit((current / 60000).toInt() + minutes)
-                    }
-                    autoUnlock()
-                }
-                "block" -> {
-                    handler.post { triggerBlock() }
-                }
-                "unblock" -> {
-                    autoUnlock()
-                }
-                "start_tracking" -> {
-                    tracker.resetDaily()
-                    tracker.setTrackingEnabled(true)
-                    handler.post {
-                        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
-                        val km = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
-                        if (pm.isInteractive && !km.isKeyguardLocked) {
-                            tracker.setScreenOnTimestamp(System.currentTimeMillis())
-                            startPeriodicCheck()
-                        }
-                    }
-                }
-                "stop_tracking" -> {
-                    tracker.setTrackingEnabled(false)
-                    handler.post {
-                        stopPeriodicCheck()
-                        val ts = tracker.getScreenOnTimestamp()
-                        if (ts > 0) {
-                            tracker.addUsage(System.currentTimeMillis() - ts)
-                            tracker.setScreenOnTimestamp(0)
-                        }
-                    }
-                }
-            }
-        } catch (_: Exception) {}
-    }
-
     override fun onDestroy() {
         stopPeriodicCheck()
         stopNotificationUpdater()
-        mqttManager.disconnect()
         removeBlockOverlay()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         super.onDestroy()
@@ -215,7 +144,6 @@ class UsageService : Service() {
         stopNotificationUpdater()
         notifRunnable = Runnable {
             updateNotification()
-            publishStatus()
             checkTimeLimit()
             ensureBlockActive()
             handler.postDelayed(notifRunnable!!, 10000)
@@ -226,27 +154,6 @@ class UsageService : Service() {
     private fun stopNotificationUpdater() {
         notifRunnable?.let { handler.removeCallbacks(it) }
         notifRunnable = null
-    }
-
-    private fun publishStatus() {
-        val tracking = isTracking()
-        val used = tracker.getAccumulatedUsage()
-        val limit = tracker.getDailyLimit()
-        val remaining = if (limit > 0) (limit - used).coerceAtLeast(0) else -1
-        val locked = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-            .getBoolean("kiosk_active", false)
-
-        val json = JSONObject().apply {
-            put("tracking", tracking)
-            put("used", if (tracking) used / 60000 else -1)
-            put("limit", if (tracking) limit / 60000 else -1)
-            put("remaining", if (tracking) remaining / 60000 else -1)
-            put("locked", locked)
-            put("timestamp", System.currentTimeMillis())
-        }
-
-        val deviceId = mqttManager.getDeviceId()
-        mqttManager.publish("safekid/child/$deviceId/status", json.toString())
     }
 
     private fun updateNotification() {
