@@ -11,6 +11,7 @@ class MqttManager(private val context: Context) {
     private val prefs = context.getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
     private var client: MqttClient? = null
     private val listeners = mutableListOf<(String, String) -> Unit>()
+    private val statusListeners = mutableListOf<(String, String) -> Unit>()
     private val executor = Executors.newSingleThreadExecutor()
 
     fun getDeviceId(): String {
@@ -71,6 +72,9 @@ class MqttManager(private val context: Context) {
                         if (topic != null && message != null) {
                             val payload = String(message.payload)
                             listeners.forEach { it(topic, payload) }
+                            if (topic.endsWith("/status")) {
+                                statusListeners.forEach { it(topic, payload) }
+                            }
                         }
                     }
                 })
@@ -117,6 +121,14 @@ class MqttManager(private val context: Context) {
 
     fun removeMessageListener(listener: (String, String) -> Unit) {
         listeners.remove(listener)
+    }
+
+    fun addStatusListener(listener: (String, String) -> Unit) {
+        statusListeners.add(listener)
+    }
+
+    fun removeStatusListener(listener: (String, String) -> Unit) {
+        statusListeners.remove(listener)
     }
 
     fun pairWithParent(code: String, childName: String, callback: (Boolean) -> Unit) {

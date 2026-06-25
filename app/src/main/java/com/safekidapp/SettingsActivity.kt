@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -28,6 +29,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var mqttManager: MqttManager
     private var dialogShown = false
     private var pendingTrackingStart = false
+    private val childStatus = mutableMapOf<String, String>()
+    private val statusListener: (String, String) -> Unit = { topic, payload ->
+        val childId = topic.removePrefix("safekid/child/").removeSuffix("/status")
+        childStatus[childId] = payload
+        runOnUiThread { refreshChildrenList() }
+    }
 
     companion object {
         private const val NOTIFICATION_PERMISSION_CODE = 100
@@ -161,6 +168,16 @@ class SettingsActivity : AppCompatActivity() {
             return
         }
 
+        mqttManager.removeStatusListener(statusListener)
+        mqttManager.addStatusListener(statusListener)
+        mqttManager.connect { connected ->
+            if (connected) {
+                for (childId in children) {
+                    mqttManager.subscribe("safekid/child/$childId/status")
+                }
+            }
+        }
+
         for (childId in children) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -179,6 +196,18 @@ class SettingsActivity : AppCompatActivity() {
                 setTypeface(null, android.graphics.Typeface.BOLD)
             }
             card.addView(tvId)
+
+            val tvStatus = TextView(this).apply {
+                id = View.generateViewId()
+                text = formatChildStatus(childId)
+                setTextColor(0xFF666666.toInt())
+                textSize = 13f
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 8) }
+            }
+            card.addView(tvStatus)
 
             val btnSetLimit = MaterialButton(this).apply {
                 text = "Cambiar límite"
@@ -238,7 +267,52 @@ class SettingsActivity : AppCompatActivity() {
             }
             card.addView(btnUnblock)
 
+            val btnStartTracking = MaterialButton(this).apply {
+                text = "Iniciar control de tiempo"
+                setBackgroundColor(0xFF6200EE.toInt())
+                setTextColor(0xFFFFFFFF.toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 4) }
+                setOnClickListener {
+                    sendCommand(childId, """{"action":"start_tracking"}""")
+                    Toast.makeText(this@SettingsActivity, "Comando iniciar control enviado", Toast.LENGTH_SHORT).show()
+                }
+            }
+            card.addView(btnStartTracking)
+
+            val btnStopTracking = MaterialButton(this).apply {
+                text = "Detener control de tiempo"
+                setBackgroundColor(0xFFD32F2F.toInt())
+                setTextColor(0xFFFFFFFF.toInt())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 4, 0, 4) }
+                setOnClickListener {
+                    sendCommand(childId, """{"action":"stop_tracking"}""")
+                    Toast.makeText(this@SettingsActivity, "Comando detener control enviado", Toast.LENGTH_SHORT).show()
+                }
+            }
+            card.addView(btnStopTracking)
+
             container.addView(card)
+        }
+    }
+
+    private fun formatChildStatus(childId: String): String {
+        val raw = childStatus[childId] ?: return "Esperando datos..."
+        return try {
+            val json = org.json.JSONObject(raw)
+            val used = json.optInt("used", 0)
+            val limit = json.optInt("limit", 0)
+            val remaining = json.optInt("remaining", 0)
+            val locked = json.optBoolean("locked", false)
+            val status = if (locked) "BLOQUEADO" else "Desbloqueado"
+            "Usado: ${used}min | Límite: ${limit}min | Restante: ${remaining}min | $status"
+        } catch (_: Exception) {
+            raw
         }
     }
 
@@ -375,6 +449,16 @@ class SettingsActivity : AppCompatActivity() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             startActivity(intent)
+        }
+
+        findViewById<MaterialButton>(R.id.btnOverlayPermission).setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val intent = Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivity(intent)
+            }
         }
     }
 

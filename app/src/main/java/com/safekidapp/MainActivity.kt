@@ -1,9 +1,11 @@
 package com.safekidapp
 
 import android.app.admin.DevicePolicyManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -23,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var tapCount = 0
     private var tapTimer: Handler? = null
     private var lockTaskStarted = false
+    private var unlockReceiver: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,14 +56,44 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        if (unlockReceiver == null) {
+            unlockReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    if (intent.action == "com.safekidapp.AUTO_UNLOCK") {
+                        autoFinish()
+                    }
+                }
+            }
+            registerReceiver(unlockReceiver, IntentFilter("com.safekidapp.AUTO_UNLOCK"))
+        }
+
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("kiosk_active", false) && !lockTaskStarted) {
+        if (!prefs.getBoolean("kiosk_active", false)) {
+            finishAffinity()
+            return
+        }
+        if (!lockTaskStarted) {
             lockTaskStarted = true
             try {
                 startLockTask()
-            } catch (_: SecurityException) {
-            }
+            } catch (_: SecurityException) {}
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unlockReceiver?.let {
+            try { unregisterReceiver(it) } catch (_: Exception) {}
+            unlockReceiver = null
+        }
+    }
+
+    private fun autoFinish() {
+        try {
+            stopLockTask()
+        } catch (_: Exception) {}
+        finishAffinity()
     }
 
     override fun onUserLeaveHint() {
