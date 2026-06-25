@@ -80,15 +80,7 @@ class MqttManager(private val context: Context) {
                 val tempDir = context.cacheDir.absolutePath
                 client = MqttClient(brokerUrl, clientId, MqttDefaultFilePersistence(tempDir))
 
-                client?.setCallback(object : MqttCallbackExtended {
-                    override fun connectComplete(reconnect: Boolean, serverURI: String?) {
-                        setMqttPrefs(true)
-                        if (reconnect) {
-                            subscribedTopics.forEach { topic ->
-                                try { client?.subscribe(topic, 2) } catch (_: Exception) {}
-                            }
-                        }
-                    }
+                client?.setCallback(object : MqttCallback {
                     override fun connectionLost(cause: Throwable?) {
                         setMqttPrefs(false)
                     }
@@ -108,7 +100,7 @@ class MqttManager(private val context: Context) {
                     isAutomaticReconnect = true
                     connectionTimeout = 10
                     keepAliveInterval = 30
-                    setCleanSession(true)
+                    setCleanSession(false)
                 }
                 client?.connect(options)
                 setMqttPrefs(true)
