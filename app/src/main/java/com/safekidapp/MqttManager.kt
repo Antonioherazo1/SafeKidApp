@@ -64,9 +64,11 @@ class MqttManager(private val context: Context) {
         executor.execute {
             try {
                 if (client?.isConnected == true) {
+                    setMqttPrefs(true)
                     callback(true)
                     return@execute
                 }
+                setMqttPrefs(false)
                 try {
                     client?.disconnect()
                     client?.close()
@@ -109,8 +111,10 @@ class MqttManager(private val context: Context) {
                     setCleanSession(true)
                 }
                 client?.connect(options)
+                setMqttPrefs(true)
                 callback(true)
             } catch (e: Exception) {
+                setMqttPrefs(false)
                 callback(false)
             }
         }
