@@ -76,6 +76,11 @@ class HomeActivity : AppCompatActivity() {
         val tvTimeLimit = findViewById<TextView>(R.id.tvTimeLimit)
         val tvTimeUsed = findViewById<TextView>(R.id.tvTimeUsed)
         val tvBlock = findViewById<TextView>(R.id.tvBlockStatus)
+        val tvMqtt = findViewById<TextView>(R.id.tvMqttStatus)
+
+        val connected = mqttManager.isMqttConnected()
+        tvMqtt.text = if (connected) "MQTT: Conectado ✓" else "MQTT: Desconectado ✗"
+        tvMqtt.setTextColor(if (connected) 0xFF4CAF50.toInt() else 0xFFFF5252.toInt())
 
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val tracking = tracker.isTrackingEnabled()

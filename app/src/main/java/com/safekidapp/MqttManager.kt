@@ -50,6 +50,16 @@ class MqttManager(private val context: Context) {
 
     private fun getClientId(): String = "safekid_${getDeviceId()}"
 
+    fun isConnected(): Boolean {
+        return client?.isConnected == true
+    }
+
+    private fun setMqttPrefs(connected: Boolean) {
+        prefs.edit().putBoolean("mqtt_connected", connected).apply()
+    }
+
+    fun isMqttConnected(): Boolean = prefs.getBoolean("mqtt_connected", false)
+
     fun connect(callback: (Boolean) -> Unit) {
         executor.execute {
             try {
@@ -70,13 +80,16 @@ class MqttManager(private val context: Context) {
 
                 client?.setCallback(object : MqttCallbackExtended {
                     override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                        setMqttPrefs(true)
                         if (reconnect) {
                             subscribedTopics.forEach { topic ->
                                 try { client?.subscribe(topic, 2) } catch (_: Exception) {}
                             }
                         }
                     }
-                    override fun connectionLost(cause: Throwable?) {}
+                    override fun connectionLost(cause: Throwable?) {
+                        setMqttPrefs(false)
+                    }
                     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
                     override fun messageArrived(topic: String?, message: MqttMessage?) {
                         if (topic != null && message != null) {
