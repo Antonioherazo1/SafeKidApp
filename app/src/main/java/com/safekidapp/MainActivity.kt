@@ -56,7 +56,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            registerReceiver(unlockReceiver, IntentFilter("com.safekidapp.AUTO_UNLOCK"))
+            val filter = IntentFilter("com.safekidapp.AUTO_UNLOCK")
+            if (Build.VERSION.SDK_INT >= 34) {
+                registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(unlockReceiver, filter)
+            }
         }
 
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
