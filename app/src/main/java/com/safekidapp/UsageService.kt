@@ -179,7 +179,22 @@ class UsageService : Service() {
 
         if (!isTracking()) return
 
+        saveCurrentSession()
         checkTimeLimit()
+    }
+
+    private fun saveCurrentSession() {
+        if (userPresent && screenOn) {
+            val ts = tracker.getScreenOnTimestamp()
+            if (ts > 0) {
+                val now = System.currentTimeMillis()
+                val elapsed = now - ts
+                if (elapsed > 0) {
+                    tracker.addUsage(elapsed)
+                    tracker.setScreenOnTimestamp(now)
+                }
+            }
+        }
     }
 
     private fun checkTimeLimit() {
@@ -201,6 +216,12 @@ class UsageService : Service() {
     }
 
     private fun triggerBlock() {
+        val ts = tracker.getScreenOnTimestamp()
+        if (ts > 0) {
+            tracker.addUsage(System.currentTimeMillis() - ts)
+            tracker.setScreenOnTimestamp(0)
+        }
+
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
@@ -257,6 +278,7 @@ class UsageService : Service() {
             .putBoolean("time_exceeded", false)
             .putLong("last_unlock_time", System.currentTimeMillis())
             .apply()
+        tracker.setScreenOnTimestamp(0)
         sendBroadcast(Intent("com.safekidapp.AUTO_UNLOCK"))
     }
 }

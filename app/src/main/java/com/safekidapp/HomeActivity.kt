@@ -87,7 +87,7 @@ class HomeActivity : AppCompatActivity() {
         val used = tracker.getAccumulatedUsage()
         val currentSession = if (tracker.getScreenOnTimestamp() > 0)
             System.currentTimeMillis() - tracker.getScreenOnTimestamp() else 0
-        val total = used + if (currentSession in 1..3600000) currentSession else 0
+        val total = used + if (currentSession > 0) currentSession else 0
 
         tvUsed.text = formatTime(used)
 
