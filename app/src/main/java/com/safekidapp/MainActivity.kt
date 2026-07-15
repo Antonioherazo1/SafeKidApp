@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private var tapTimer: Handler? = null
     private var lockTaskStarted = false
     private var unlockReceiver: BroadcastReceiver? = null
+    private var isDialogShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,6 +81,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        isDialogShowing = false
         unlockReceiver?.let {
             try { unregisterReceiver(it) } catch (_: Exception) {}
             unlockReceiver = null
@@ -105,12 +107,14 @@ class MainActivity : AppCompatActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) enableFullScreen()
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        if (!hasFocus && prefs.getBoolean("kiosk_active", false)) {
-            try { startLockTask() } catch (_: SecurityException) {}
-            startActivity(Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            })
+        if (!hasFocus && !isDialogShowing) {
+            val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+            if (prefs.getBoolean("kiosk_active", false)) {
+                try { startLockTask() } catch (_: SecurityException) {}
+                startActivity(Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+            }
         }
     }
 
@@ -153,6 +157,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPasswordDialog() {
+        isDialogShowing = true
         val inputLayout = TextInputLayout(this)
         val input = TextInputEditText(this)
         input.inputType = android.text.InputType.TYPE_CLASS_TEXT or
@@ -160,7 +165,7 @@ class MainActivity : AppCompatActivity() {
         inputLayout.addView(input)
         inputLayout.setPadding(48, 16, 48, 16)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Desbloquear dispositivo")
             .setMessage("Ingresa la contraseña de adulto")
             .setView(inputLayout)
@@ -175,6 +180,8 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .setCancelable(false)
             .show()
+
+        dialog.setOnDismissListener { isDialogShowing = false }
     }
 
     private fun checkPassword(password: String): Boolean {
