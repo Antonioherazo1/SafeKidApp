@@ -66,6 +66,11 @@ class UsageTracker(context: Context) {
         return (getDailyLimit() / 60000).toInt()
     }
 
+    fun isDifferentDay(): Boolean {
+        val lastReset = prefs.getLong("last_usage_reset_date", 0)
+        return getTodayStart() != lastReset
+    }
+
     private fun resetIfNewDay() {
         val lastReset = prefs.getLong("last_usage_reset_date", 0)
         val today = getTodayStart()

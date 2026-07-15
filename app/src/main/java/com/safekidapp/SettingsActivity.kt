@@ -76,11 +76,7 @@ class SettingsActivity : AppCompatActivity() {
         val tvUsage = findViewById<TextView>(R.id.tvUsageInfo)
         val used = tracker.getUsedMinutes()
         val limit = tracker.getLimitMinutes()
-        if (limit > 0) {
-            tvUsage.text = "$used min usado de $limit min"
-        } else {
-            tvUsage.text = "$used min usado (sin límite)"
-        }
+        tvUsage.text = if (limit > 0) "$used min usado de $limit min" else "$used min usado (sin límite)"
     }
 
     private fun setupButtons() {
@@ -158,19 +154,17 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.btnExitAdmin).setOnClickListener {
-            val intent = Intent(this, HomeActivity::class.java).apply {
+            startActivity(Intent(this, HomeActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
+            })
         }
 
         findViewById<MaterialButton>(R.id.btnOverlayPermission).setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val intent = Intent(
+                startActivity(Intent(
                     android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")
-                )
-                startActivity(intent)
+                ))
             }
         }
     }
@@ -224,8 +218,7 @@ class SettingsActivity : AppCompatActivity() {
 
         try {
             dpm.setLockTaskPackages(adminComponent, arrayOf(packageName))
-        } catch (_: SecurityException) {
-        }
+        } catch (_: SecurityException) {}
 
         try {
             startLockTask()
@@ -236,10 +229,9 @@ class SettingsActivity : AppCompatActivity() {
 
         prefs.edit().putBoolean("kiosk_active", true).apply()
 
-        val intent = Intent(this, MainActivity::class.java).apply {
+        startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        startActivity(intent)
+        })
     }
 
     private fun showAdbDialog() {

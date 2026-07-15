@@ -32,21 +32,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Esta pantalla está bloqueada"
+            android:text="Toca 5 veces para desbloquear"
             android:textColor="#B0B0B0"
             android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/tvTimeExceeded"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Has superado el tiempo de uso del celular"
-            android:textColor="#FF5252"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:visibility="gone" />
 
     </LinearLayout>
 

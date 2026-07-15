@@ -1,8 +1,6 @@
 package com.safekidapp
 
-import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -12,7 +10,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -43,12 +40,6 @@ class MainActivity : AppCompatActivity() {
         enableFullScreen()
         setContentView(R.layout.activity_main)
 
-        val tracker = UsageTracker(this)
-        if (tracker.isTimeExceeded()) {
-            findViewById<TextView>(R.id.tvTimeExceeded).visibility = View.VISIBLE
-            findViewById<TextView>(R.id.tvBlockMessage).text = "El límite diario se ha alcanzado"
-        }
-
         findViewById<View>(R.id.blockImage).setOnClickListener {
             handleTap()
         }
@@ -73,6 +64,7 @@ class MainActivity : AppCompatActivity() {
             finishAffinity()
             return
         }
+
         if (!lockTaskStarted) {
             lockTaskStarted = true
             try {
@@ -90,9 +82,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun autoFinish() {
-        try {
-            stopLockTask()
-        } catch (_: Exception) {}
+        try { stopLockTask() } catch (_: Exception) {}
         finishAffinity()
     }
 
@@ -100,32 +90,22 @@ class MainActivity : AppCompatActivity() {
         super.onUserLeaveHint()
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("kiosk_active", false)) {
-            try {
-                startLockTask()
-            } catch (_: SecurityException) {
-            }
-            val intent = Intent(this, MainActivity::class.java).apply {
+            try { startLockTask() } catch (_: SecurityException) {}
+            startActivity(Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
+            })
         }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            enableFullScreen()
-        }
+        if (hasFocus) enableFullScreen()
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (!hasFocus && prefs.getBoolean("kiosk_active", false)) {
-            try {
-                startLockTask()
-            } catch (_: SecurityException) {
-            }
-            val intent = Intent(this, MainActivity::class.java).apply {
+            try { startLockTask() } catch (_: SecurityException) {}
+            startActivity(Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
+            })
         }
     }
 
@@ -134,14 +114,11 @@ class MainActivity : AppCompatActivity() {
             window.attributes.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
-
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             or View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -198,8 +175,7 @@ class MainActivity : AppCompatActivity() {
     private fun checkPassword(password: String): Boolean {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val storedHash = prefs.getString("password_hash", null) ?: return false
-        val inputHash = hashPassword(password)
-        return storedHash == inputHash
+        return storedHash == hashPassword(password)
     }
 
     private fun unlockDevice() {
@@ -215,10 +191,9 @@ class MainActivity : AppCompatActivity() {
             stopService(Intent(this, UsageService::class.java))
             stopLockTask()
 
-            val intent = Intent(this, SettingsActivity::class.java).apply {
+            startActivity(Intent(this, SettingsActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
+            })
             finishAffinity()
         } catch (e: Exception) {
             Toast.makeText(this, "Error al desbloquear: ${e.message}", Toast.LENGTH_LONG).show()
