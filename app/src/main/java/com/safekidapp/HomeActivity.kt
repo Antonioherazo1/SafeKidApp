@@ -19,31 +19,40 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var tracker: UsageTracker
     private val handler = Handler(Looper.getMainLooper())
     private var updateRunnable: Runnable? = null
+    private var hasError = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tracker = UsageTracker(this)
+        try {
+            tracker = UsageTracker(this)
 
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        if (!prefs.contains("password_hash")) {
-            startActivity(Intent(this, SettingsActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            })
-            finish()
-            return
-        }
+            val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+            if (!prefs.contains("password_hash")) {
+                startActivity(Intent(this, SettingsActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+                finish()
+                return
+            }
 
-        findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
-            showPasswordDialog()
+            findViewById<Button>(R.id.btnAdminAccess).setOnClickListener {
+                showPasswordDialog()
+            }
+        } catch (e: Exception) {
+            hasError = true
+            findViewById<TextView>(R.id.tvHomeStatus).text =
+                "Error: ${e.javaClass.simpleName}: ${e.message}"
         }
     }
 
     override fun onResume() {
         super.onResume()
-        updateDisplay()
-        startAutoUpdate()
+        if (!hasError) {
+            updateDisplay()
+            startAutoUpdate()
+        }
     }
 
     override fun onPause() {
