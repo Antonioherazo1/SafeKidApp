@@ -136,7 +136,10 @@ class ChildDashboardActivity : AppCompatActivity() {
 
     private fun executeBlock() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("kiosk_active", true).apply()
+        prefs.edit()
+            .putBoolean("kiosk_active", true)
+            .putString("block_reason", null)
+            .apply()
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         })

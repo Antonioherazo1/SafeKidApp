@@ -19,19 +19,36 @@
             android:contentDescription="Icono de bloqueo" />
 
         <TextView
+            android:id="@+id/tvBlockTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            android:text="Tiempo de pantalla terminado"
+            android:text="Dispositivo bloqueado"
             android:textColor="#FFFFFF"
             android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvBlockReason"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#FF5252"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvBlockSchedule"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#F59E0B"
+            android:textSize="14sp" />
+
+        <TextView
             android:id="@+id/tvBlockMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="24dp"
             android:text="Toca 5 veces para desbloquear"
             android:textColor="#8B949E"
             android:textSize="16sp" />

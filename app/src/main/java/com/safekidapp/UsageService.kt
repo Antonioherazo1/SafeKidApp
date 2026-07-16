@@ -21,11 +21,13 @@ class UsageService : Service() {
 
     private lateinit var tracker: UsageTracker
     private lateinit var nm: NotificationManager
+    private lateinit var syncClient: SyncClient
     private val handler = Handler(Looper.getMainLooper())
     private var userPresent = false
     private var screenOn = false
     private var periodicRunnable: Runnable? = null
     private var notificationRunnable: Runnable? = null
+    private var scheduleMonitorRunnable: Runnable? = null
 
     private fun isTracking(): Boolean {
         return getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
@@ -63,6 +65,7 @@ class UsageService : Service() {
     override fun onCreate() {
         super.onCreate()
         tracker = UsageTracker(this)
+        syncClient = SyncClient(this)
         nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
     }
@@ -88,6 +91,7 @@ class UsageService : Service() {
         }
 
         startNotificationUpdates()
+        startScheduleMonitor()
 
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("kiosk_active", false)) {
@@ -100,6 +104,7 @@ class UsageService : Service() {
     override fun onDestroy() {
         stopPeriodicCheck()
         stopNotificationUpdates()
+        stopScheduleMonitor()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         super.onDestroy()
     }
@@ -166,9 +171,67 @@ class UsageService : Service() {
         periodicRunnable = null
     }
 
+    // ── Background schedule monitor (runs always, even with screen off) ──
+
+    private fun startScheduleMonitor() {
+        stopScheduleMonitor()
+        scheduleMonitorRunnable = Runnable {
+            syncCloudSchedule()
+            checkSchedule()
+            handler.postDelayed(scheduleMonitorRunnable!!, 30000)
+        }
+        handler.postDelayed(scheduleMonitorRunnable!!, 5000)
+    }
+
+    private fun stopScheduleMonitor() {
+        scheduleMonitorRunnable?.let { handler.removeCallbacks(it) }
+        scheduleMonitorRunnable = null
+    }
+
+    private fun syncCloudSchedule() {
+        if (!syncClient.isConfigured()) return
+        val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
+        syncClient.syncToday(usedSeconds) { _, _ -> }
+    }
+
+    private fun checkSchedule() {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val withinSchedule = isWithinSchedule()
+
+        if (prefs.getBoolean("kiosk_active", false)) {
+            if (tracker.isDifferentDay()) {
+                autoUnlock()
+                return
+            }
+            if (withinSchedule) {
+                val limit = tracker.getDailyLimit()
+                val usage = tracker.getAccumulatedUsage()
+                if (limit <= 0 || usage < limit) {
+                    autoUnlock()
+                    return
+                }
+            }
+            return
+        }
+
+        if (!withinSchedule && prefs.getInt("schedule_start_min", -1) >= 0) {
+            val hourStart = prefs.getInt("schedule_start_min", 0) / 60
+            val minStart = prefs.getInt("schedule_start_min", 0) % 60
+            val hourEnd = prefs.getInt("schedule_end_min", 0) / 60
+            val minEnd = prefs.getInt("schedule_end_min", 0) % 60
+            prefs.edit()
+                .putString("block_reason", "schedule")
+                .putString("block_schedule_start", String.format("%02d:%02d", hourStart, minStart))
+                .putString("block_schedule_end", String.format("%02d:%02d", hourEnd, minEnd))
+                .apply()
+            triggerBlock()
+        }
+    }
+
+    // ── Periodic check (runs when user is active) ──
+
     private fun periodicCheck() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-
         val withinSchedule = isWithinSchedule()
 
         if (prefs.getBoolean("kiosk_active", false)) {
@@ -188,15 +251,24 @@ class UsageService : Service() {
             return
         }
 
-        if (!isTracking()) return
-
-        saveCurrentSession()
-
-        if (!withinSchedule) {
+        // Schedule check first — independent of tracking
+        if (!withinSchedule && prefs.getInt("schedule_start_min", -1) >= 0) {
+            val hourStart = prefs.getInt("schedule_start_min", 0) / 60
+            val minStart = prefs.getInt("schedule_start_min", 0) % 60
+            val hourEnd = prefs.getInt("schedule_end_min", 0) / 60
+            val minEnd = prefs.getInt("schedule_end_min", 0) % 60
+            prefs.edit()
+                .putString("block_reason", "schedule")
+                .putString("block_schedule_start", String.format("%02d:%02d", hourStart, minStart))
+                .putString("block_schedule_end", String.format("%02d:%02d", hourEnd, minEnd))
+                .apply()
             triggerBlock()
             return
         }
 
+        if (!isTracking()) return
+
+        saveCurrentSession()
         checkTimeLimit()
     }
 
@@ -243,7 +315,7 @@ class UsageService : Service() {
         if (tracker.getAccumulatedUsage() + currentSession >= limit) {
             val lastUnlock = prefs.getLong("last_unlock_time", 0)
             if (System.currentTimeMillis() - lastUnlock < 3 * 60 * 1000L) return
-
+            prefs.edit().putString("block_reason", "time_limit").apply()
             triggerBlock()
         }
     }

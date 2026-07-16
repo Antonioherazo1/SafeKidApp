@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -48,8 +49,35 @@ class MainActivity : AppCompatActivity() {
         syncClient = SyncClient(this)
         tokenManager = TokenManager(this)
 
+        updateBlockMessage()
+
         findViewById<View>(R.id.blockImage).setOnClickListener {
             handleTap()
+        }
+    }
+
+    private fun updateBlockMessage() {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val reason = prefs.getString("block_reason", null)
+        val tvTitle = findViewById<TextView>(R.id.tvBlockTitle)
+        val tvReason = findViewById<TextView>(R.id.tvBlockReason)
+        val tvSchedule = findViewById<TextView>(R.id.tvBlockSchedule)
+
+        if (reason == "schedule") {
+            tvTitle.text = "Equipo bloqueado"
+            tvReason.text = "Fuera del horario de uso"
+            val start = prefs.getString("block_schedule_start", "--:--")
+            val end = prefs.getString("block_schedule_end", "--:--")
+            tvSchedule.text = "Horario permitido: $start – $end"
+            tvSchedule.visibility = View.VISIBLE
+        } else if (reason == "time_limit") {
+            tvTitle.text = "Tiempo de pantalla terminado"
+            tvReason.text = "Alcanzaste el límite diario"
+            tvSchedule.visibility = View.GONE
+        } else {
+            tvTitle.text = "Dispositivo bloqueado"
+            tvReason.text = ""
+            tvSchedule.visibility = View.GONE
         }
     }
 
