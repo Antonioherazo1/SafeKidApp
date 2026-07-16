@@ -154,7 +154,13 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.btnExitAdmin).setOnClickListener {
-            startActivity(Intent(this, HomeActivity::class.java).apply {
+            val tokenManager = TokenManager(this)
+            val target = when {
+                tokenManager.isLoggedIn() && tokenManager.isParent() -> ParentDashboardActivity::class.java
+                tokenManager.isLoggedIn() && tokenManager.isChild() -> ChildDashboardActivity::class.java
+                else -> HomeActivity::class.java
+            }
+            startActivity(Intent(this, target).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             })
         }
