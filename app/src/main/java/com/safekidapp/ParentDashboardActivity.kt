@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Calendar
 
 class ParentDashboardActivity : AppCompatActivity() {
 
@@ -124,6 +125,37 @@ class ParentDashboardActivity : AppCompatActivity() {
             v.findViewById<TextView>(R.id.tvChildName).text = name
             v.findViewById<TextView>(R.id.tvChildUsage).text =
                 "${child.todaySeconds / 60} min usado de ${child.dailyLimitMinutes} min"
+
+            val tvStatus = v.findViewById<TextView>(R.id.tvChildStatus)
+            val parts = mutableListOf<String>()
+
+            val sStart = child.scheduleStartMin
+            val sEnd = child.scheduleEndMin
+            if (sStart >= 0 && sEnd >= 0) {
+                val cal = Calendar.getInstance()
+                val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+                val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
+                val h1 = sStart / 60; val m1 = sStart % 60
+                val h2 = sEnd / 60; val m2 = sEnd % 60
+                val label = if (within) "Dentro del horario" else "Fuera del horario"
+                parts.add("$label (%02d:%02d-%02d:%02d)".format(h1, m1, h2, m2))
+            }
+
+            val limitMin = child.dailyLimitMinutes
+            if (limitMin > 0) {
+                val usedMin = child.todaySeconds / 60
+                if (usedMin >= limitMin) {
+                    parts.add("Límite agotado")
+                } else {
+                    parts.add("${limitMin - usedMin} min restantes")
+                }
+            }
+
+            tvStatus.text = parts.joinToString(" • ")
+            tvStatus.setTextColor(
+                if (parts.any { it.startsWith("Fuera") || it.startsWith("Límite agotado") })
+                    0xFFFF5252.toInt() else 0xFF10B981.toInt()
+            )
             return v
         }
     }

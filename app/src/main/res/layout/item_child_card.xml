@@ -50,9 +50,17 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/tvChildStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="#6B7280"
+        android:textSize="13sp" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:text="Toca para administrar →"
         android:textColor="#9CA3AF"
         android:textSize="14sp"

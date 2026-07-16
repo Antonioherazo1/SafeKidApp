@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
+import java.util.Calendar
 
 class ChildDetailActivity : AppCompatActivity() {
 
@@ -58,6 +59,7 @@ class ChildDetailActivity : AppCompatActivity() {
         etLimit.setText(limit.toString())
 
         updateScheduleButtons(btnScheduleStart, btnScheduleEnd)
+        updateStatusInfo(limit, todaySeconds)
 
         btnSetLimit.setOnClickListener {
             val minutes = etLimit.text.toString().trim().toIntOrNull()
@@ -149,6 +151,38 @@ class ChildDetailActivity : AppCompatActivity() {
         btnEnd.text = if (scheduleEndMin >= 0) {
             String.format("%02d:%02d", scheduleEndMin / 60, scheduleEndMin % 60)
         } else "--:--"
+    }
+
+    private fun updateStatusInfo(limitMinutes: Int, todaySeconds: Int) {
+        val tvStatusInfo = findViewById<TextView>(R.id.tvChildDetailStatusInfo)
+        val parts = mutableListOf<String>()
+
+        val sStart = scheduleStartMin
+        val sEnd = scheduleEndMin
+        if (sStart >= 0 && sEnd >= 0) {
+            val cal = Calendar.getInstance()
+            val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+            val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
+            val h1 = sStart / 60; val m1 = sStart % 60
+            val h2 = sEnd / 60; val m2 = sEnd % 60
+            val label = if (within) "Dentro del horario" else "Fuera del horario"
+            parts.add("$label (%02d:%02d-%02d:%02d)".format(h1, m1, h2, m2))
+        }
+
+        if (limitMinutes > 0) {
+            val usedMin = todaySeconds / 60
+            if (usedMin >= limitMinutes) {
+                parts.add("Límite diario agotado")
+            } else {
+                parts.add("${limitMinutes - usedMin} min disponibles")
+            }
+        }
+
+        tvStatusInfo.text = parts.joinToString("\n")
+        tvStatusInfo.setTextColor(
+            if (parts.any { it.startsWith("Fuera") || it.startsWith("Límite") && it.contains("agotado") })
+                0xFFFF5252.toInt() else 0xFF10B981.toInt()
+        )
     }
 
     private fun saveSchedule() {
