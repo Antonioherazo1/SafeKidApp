@@ -1,11 +1,9 @@
 package com.safekidapp
 
-import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,24 +11,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import java.security.MessageDigest
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var dpm: DevicePolicyManager
     private lateinit var adminComponent: ComponentName
-    private lateinit var tracker: UsageTracker
-    private var dialogShown = false
-    private var pendingTrackingStart = false
-
-    companion object {
-        private const val NOTIFICATION_PERMISSION_CODE = 100
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,46 +26,8 @@ class SettingsActivity : AppCompatActivity() {
 
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, AdminReceiver::class.java)
-        tracker = UsageTracker(this)
 
-        updateUsageInfo()
         setupButtons()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        updateUsageInfo()
-        if (!dialogShown && tracker.getDailyLimit() > 0 && tracker.getAccumulatedUsage() >= tracker.getDailyLimit()) {
-            dialogShown = true
-            showTimeExceededDialog()
-        }
-    }
-
-    private fun showTimeExceededDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Tiempo agotado")
-            .setMessage("El límite diario de ${tracker.getLimitMinutes()} minutos se ha alcanzado.\n\n" +
-                    "Puedes agregar más tiempo o reiniciar el contador de hoy.")
-            .setPositiveButton("Agregar 15 min") { _, _ ->
-                val newLimit = tracker.getLimitMinutes() + 15
-                tracker.setDailyLimit(newLimit)
-                updateUsageInfo()
-                Toast.makeText(this, "Límite extendido a $newLimit min", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Reiniciar hoy") { _, _ ->
-                tracker.resetDaily()
-                updateUsageInfo()
-                Toast.makeText(this, "Contador reiniciado", Toast.LENGTH_SHORT).show()
-            }
-            .setNeutralButton("Cerrar", null)
-            .show()
-    }
-
-    private fun updateUsageInfo() {
-        val tvUsage = findViewById<TextView>(R.id.tvUsageInfo)
-        val used = tracker.getUsedMinutes()
-        val limit = tracker.getLimitMinutes()
-        tvUsage.text = if (limit > 0) "$used min usado de $limit min" else "$used min usado (sin límite)"
     }
 
     private fun setupButtons() {
@@ -111,43 +61,6 @@ class SettingsActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        findViewById<MaterialButton>(R.id.btnSetTimeLimit).setOnClickListener {
-            val text = findViewById<TextInputEditText>(R.id.etTimeLimit).text?.toString() ?: ""
-            val minutes = text.toIntOrNull()
-            if (minutes == null || minutes <= 0) {
-                Toast.makeText(this, "Ingresa un número válido de minutos", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            tracker.setDailyLimit(minutes)
-            updateUsageInfo()
-            Toast.makeText(this, "Límite establecido: $minutes min por día", Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<MaterialButton>(R.id.btnResetUsage).setOnClickListener {
-            tracker.resetDaily()
-            updateUsageInfo()
-            Toast.makeText(this, "Uso de hoy reiniciado", Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<MaterialButton>(R.id.btnStartTracking).setOnClickListener {
-            if (tracker.getDailyLimit() <= 0) {
-                Toast.makeText(this, "Primero establece un límite de tiempo", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                pendingTrackingStart = true
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_PERMISSION_CODE)
-                return@setOnClickListener
-            }
-            startTracking()
-        }
-
-        findViewById<MaterialButton>(R.id.btnStopTracking).setOnClickListener {
-            tracker.setTrackingEnabled(false)
-            stopUsageService()
-            Toast.makeText(this, "Control de tiempo detenido", Toast.LENGTH_SHORT).show()
         }
 
         findViewById<MaterialButton>(R.id.btnStartKiosk).setOnClickListener {
@@ -286,39 +199,6 @@ class SettingsActivity : AppCompatActivity() {
                 tvStatus.setTextColor(0xFFFF5252.toInt())
             }
         }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == NOTIFICATION_PERMISSION_CODE && pendingTrackingStart) {
-            pendingTrackingStart = false
-            startTracking()
-        }
-    }
-
-    private fun startTracking() {
-        if (tracker.getDailyLimit() <= 0) {
-            Toast.makeText(this, "Primero establece un límite de tiempo", Toast.LENGTH_LONG).show()
-            return
-        }
-        tracker.setTrackingEnabled(true)
-        tracker.resetDaily()
-        startUsageService()
-        updateUsageInfo()
-        Toast.makeText(this, "Control de tiempo iniciado", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun startUsageService() {
-        val intent = Intent(this, UsageService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-    }
-
-    private fun stopUsageService() {
-        stopService(Intent(this, UsageService::class.java))
     }
 
     private fun startKioskMode() {
