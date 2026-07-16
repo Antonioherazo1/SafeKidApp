@@ -191,7 +191,15 @@ class ChildDetailActivity : AppCompatActivity() {
         val tvStatus = findViewById<TextView>(R.id.tvChildDetailStatus)
         tvStatus.text = "Guardando horario..."
         syncClient.setChildSchedule(childUsername, start, end) { ok, error ->
-            tvStatus.text = if (ok) "Horario guardado" else "Error: ${error ?: "conexión"}"
+            if (ok) {
+                tvStatus.text = "Horario guardado"
+                val payload = org.json.JSONObject()
+                    .put("start_min", start)
+                    .put("end_min", end)
+                syncClient.sendCommandWithPayload(deviceId, "set_schedule", payload) { _, _ -> }
+            } else {
+                tvStatus.text = "Error: ${error ?: "conexión"}"
+            }
         }
     }
 

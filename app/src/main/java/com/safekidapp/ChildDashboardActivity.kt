@@ -130,10 +130,28 @@ class ChildDashboardActivity : AppCompatActivity() {
                         "unblock" -> executeUnblock()
                         "start_tracking" -> executeStartTracking()
                         "stop_tracking" -> executeStopTracking()
+                        "set_schedule" -> executeSetSchedule(cmd.payload)
                     }
                     syncClient.markCommandExecuted(cmd.id) { _, _ -> }
                 }
             }
+        }
+    }
+
+    private fun executeSetSchedule(payload: Map<String, Any>?) {
+        if (payload == null) return
+        val startMin = (payload["start_min"] as? Number)?.toInt() ?: return
+        val endMin = (payload["end_min"] as? Number)?.toInt() ?: return
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt("schedule_start_min", startMin)
+            .putInt("schedule_end_min", endMin)
+            .apply()
+        updateDisplay()
+
+        // If tracking is enabled, check schedule immediately
+        if (prefs.getBoolean("tracking_enabled", false) && outsideScheduleFromPrefs()) {
+            blockNow("schedule")
         }
     }
 

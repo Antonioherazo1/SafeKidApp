@@ -42,7 +42,8 @@ data class ChildInfo(
 data class PendingCommandInfo(
     val id: Int,
     val commandType: String,
-    val createdAt: String
+    val createdAt: String,
+    val payload: Map<String, Any>? = null
 )
 
 class SyncClient(private val context: Context) {
@@ -437,6 +438,17 @@ class SyncClient(private val context: Context) {
         }
     }
 
+    fun sendCommandWithPayload(toDeviceId: String, commandType: String, payload: JSONObject, callback: (Boolean, String?) -> Unit) {
+        val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
+        val json = JSONObject()
+            .put("to_device_id", toDeviceId)
+            .put("command_type", commandType)
+            .put("payload", payload)
+        apiRequest("/commands/send", "POST", json.toString(), token = token) { ok, body ->
+            callback(ok, if (ok) null else body)
+        }
+    }
+
     // ── Child / command endpoints ──
 
     fun getPendingCommands(callback: (List<PendingCommandInfo>?, String?) -> Unit) {
@@ -450,11 +462,22 @@ class SyncClient(private val context: Context) {
                     val list = mutableListOf<PendingCommandInfo>()
                     for (i in 0 until arr.length()) {
                         val c = arr.getJSONObject(i)
+                        val payloadObj = c.optJSONObject("payload")
+                        val payloadMap = payloadObj?.let { p ->
+                            val keys = p.keys()
+                            val map = mutableMapOf<String, Any>()
+                            while (keys.hasNext()) {
+                                val key = keys.next()
+                                map[key] = p.get(key)
+                            }
+                            map
+                        }
                         list.add(
                             PendingCommandInfo(
                                 id = c.getInt("id"),
                                 commandType = c.getString("command_type"),
                                 createdAt = c.optString("created_at", ""),
+                                payload = payloadMap,
                             )
                         )
                     }
