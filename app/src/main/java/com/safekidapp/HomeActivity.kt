@@ -52,6 +52,7 @@ class HomeActivity : AppCompatActivity() {
         if (!hasError) {
             updateDisplay()
             startAutoUpdate()
+            syncCloudData()
         }
     }
 
@@ -135,6 +136,47 @@ class HomeActivity : AppCompatActivity() {
         } else {
             tvTime.text = String.format("%02d:%02d", minutes, seconds)
             tvStatus.text = "${minutes}m ${seconds}s restantes"
+        }
+    }
+
+    private fun syncCloudData() {
+        val syncClient = SyncClient(this)
+        val tvCloud = findViewById<TextView>(R.id.tvCloudInfo)
+
+        if (!syncClient.isConfigured()) {
+            tvCloud.text = "◎ No configurado"
+            tvCloud.setTextColor(0xFF999999.toInt())
+            return
+        }
+
+        val tracker = UsageTracker(this)
+        val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
+
+        tvCloud.text = "◌ Sincronizando..."
+        tvCloud.setTextColor(0xFFFFA500.toInt())
+
+        syncClient.syncToday(usedSeconds) { syncOk, _ ->
+            if (syncOk) {
+                syncClient.fetchStats(7) { stats, _ ->
+                    if (stats != null) {
+                        val usedMin = stats.todaySeconds / 60
+                        val limitMin = stats.limitMinutes
+                        val text = if (limitMin > 0) {
+                            "$usedMin min usado de $limitMin min • ${stats.history.size} días"
+                        } else {
+                            "$usedMin min usado • ${stats.history.size} días"
+                        }
+                        tvCloud.text = "● $text"
+                        tvCloud.setTextColor(0xFF4CAF50.toInt())
+                    } else {
+                        tvCloud.text = "● Sincronizado"
+                        tvCloud.setTextColor(0xFF4CAF50.toInt())
+                    }
+                }
+            } else {
+                tvCloud.text = "✕ Error de conexión"
+                tvCloud.setTextColor(0xFFFF5252.toInt())
+            }
         }
     }
 

@@ -124,6 +124,29 @@
             android:paddingRight="32dp"
             android:textColor="#FFFFFF" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="12dp"
+            android:background="#333355" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sincronización Cloud"
+            android:textColor="#B0B0B0"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvCloudInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="◎ No configurado"
+            android:textColor="#999999"
+            android:textSize="14sp" />
+
     </LinearLayout>
 
 </ScrollView>
