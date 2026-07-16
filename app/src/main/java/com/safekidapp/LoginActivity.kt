@@ -17,51 +17,55 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        syncClient = SyncClient(this)
-        tokenManager = TokenManager(this)
+        try {
+            syncClient = SyncClient(this)
+            tokenManager = TokenManager(this)
 
-        if (tokenManager.isLoggedIn()) {
-            routeToDashboard()
-            return
-        }
-
-        setContentView(R.layout.activity_login)
-
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        if (prefs.getString("server_url", null) == null) {
-            prefs.edit().putString("server_url", "https://thinc.site/api/safekid").apply()
-        }
-
-        val etUsername = findViewById<TextInputEditText>(R.id.etUsername)
-        val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
-        val btnGoSignup = findViewById<Button>(R.id.btnGoSignup)
-        val tvStatus = findViewById<TextView>(R.id.tvLoginStatus)
-
-        btnLogin.setOnClickListener {
-            val username = etUsername.text.toString().trim()
-            val password = etPassword.text.toString()
-
-            if (username.isBlank() || password.isBlank()) {
-                Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            if (tokenManager.isLoggedIn()) {
+                routeToDashboard()
+                return
             }
 
-            tvStatus.text = "Iniciando sesión..."
-            btnLogin.isEnabled = false
+            setContentView(R.layout.activity_login)
 
-            syncClient.login(username, password) { ok, error ->
-                btnLogin.isEnabled = true
-                if (ok) {
-                    routeToDashboard()
-                } else {
-                    tvStatus.text = error ?: "Error de conexión"
+            val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+            if (prefs.getString("server_url", null) == null) {
+                prefs.edit().putString("server_url", "https://thinc.site/api/safekid").apply()
+            }
+
+            val etUsername = findViewById<TextInputEditText>(R.id.etUsername)
+            val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
+            val btnLogin = findViewById<Button>(R.id.btnLogin)
+            val btnGoSignup = findViewById<Button>(R.id.btnGoSignup)
+            val tvStatus = findViewById<TextView>(R.id.tvLoginStatus)
+
+            btnLogin.setOnClickListener {
+                val username = etUsername.text.toString().trim()
+                val password = etPassword.text.toString()
+
+                if (username.isBlank() || password.isBlank()) {
+                    Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                tvStatus.text = "Iniciando sesión..."
+                btnLogin.isEnabled = false
+
+                syncClient.login(username, password) { ok, error ->
+                    btnLogin.isEnabled = true
+                    if (ok) {
+                        routeToDashboard()
+                    } else {
+                        tvStatus.text = error ?: "Error de conexión"
+                    }
                 }
             }
-        }
 
-        btnGoSignup.setOnClickListener {
-            startActivity(Intent(this, SignupActivity::class.java))
+            btnGoSignup.setOnClickListener {
+                startActivity(Intent(this, SignupActivity::class.java))
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
