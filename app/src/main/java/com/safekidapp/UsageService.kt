@@ -100,6 +100,8 @@ class UsageService : Service() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("kiosk_active", false)) {
             handler.post { triggerBlock() }
+        } else {
+            handler.post { checkSchedule() }
         }
 
         return START_STICKY

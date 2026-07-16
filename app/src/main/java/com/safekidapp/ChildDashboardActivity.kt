@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Calendar
 
 class ChildDashboardActivity : AppCompatActivity() {
 
@@ -168,8 +169,53 @@ class ChildDashboardActivity : AppCompatActivity() {
             .putLong("daily_usage_ms", 0)
             .putBoolean("time_exceeded", false)
             .apply()
-        startService(Intent(this, UsageService::class.java))
-        Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
+
+        if (outsideScheduleFromPrefs()) {
+            blockNow("schedule")
+            return
+        }
+
+        if (syncClient.isConfigured()) {
+            val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
+            syncClient.syncToday(usedSeconds) { ok, _ ->
+                if (ok && outsideScheduleFromPrefs()) {
+                    blockNow("schedule")
+                } else {
+                    startService(Intent(this, UsageService::class.java))
+                    Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
+                }
+            }
+        } else {
+            startService(Intent(this, UsageService::class.java))
+            Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun outsideScheduleFromPrefs(): Boolean {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        if (sStart < 0 || sEnd < 0) return false
+        val cal = Calendar.getInstance()
+        val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+        val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
+        return !within
+    }
+
+    private fun blockNow(reason: String) {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val sStart = prefs.getInt("schedule_start_min", 0)
+        val sEnd = prefs.getInt("schedule_end_min", 0)
+        prefs.edit()
+            .putBoolean("kiosk_active", true)
+            .putString("block_reason", reason)
+            .putString("block_schedule_start", String.format("%02d:%02d", sStart / 60, sStart % 60))
+            .putString("block_schedule_end", String.format("%02d:%02d", sEnd / 60, sEnd % 60))
+            .apply()
+        startActivity(Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        })
+        finish()
     }
 
     private fun executeStopTracking() {
