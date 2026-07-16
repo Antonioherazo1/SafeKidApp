@@ -101,11 +101,11 @@ class SyncClient(private val context: Context) {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string() ?: "{}"
+                val body = try { response.body?.string() ?: "{}" } catch (e: Exception) { "{}" }
                 if (response.isSuccessful) {
                     mainHandler.post { callback(true, body) }
                 } else {
-                    val msg = JSONObject(body).optString("detail", "Error ${response.code}")
+                    val msg = try { JSONObject(body).optString("detail", "Error ${response.code}") } catch (e: Exception) { "Error ${response.code}" }
                     mainHandler.post { callback(false, msg) }
                 }
             }
@@ -128,20 +128,24 @@ class SyncClient(private val context: Context) {
         }
 
         apiRequest("/auth/register", "POST", json.toString()) { ok, body ->
-            if (ok && body != null) {
-                val obj = JSONObject(body)
-                tokenManager.saveLogin(
-                    token = obj.getString("token"),
-                    userId = obj.getString("user_id"),
-                    username = obj.getString("username"),
-                    role = obj.getString("role")
-                )
-                val code = obj.optString("parent_code", null)
-                if (!code.isNullOrBlank()) {
-                    prefs.edit().putString("my_parent_code", code).apply()
+            try {
+                if (ok && body != null) {
+                    val obj = JSONObject(body)
+                    tokenManager.saveLogin(
+                        token = obj.getString("token"),
+                        userId = obj.getString("user_id"),
+                        username = obj.getString("username"),
+                        role = obj.getString("role")
+                    )
+                    val code = obj.optString("parent_code", null)
+                    if (!code.isNullOrBlank()) {
+                        prefs.edit().putString("my_parent_code", code).apply()
+                    }
                 }
+                callback(ok, if (ok) null else body)
+            } catch (e: Exception) {
+                callback(false, e.message ?: "Parse error")
             }
-            callback(ok, if (ok) null else body)
         }
     }
 
@@ -151,20 +155,24 @@ class SyncClient(private val context: Context) {
             .put("password", password)
 
         apiRequest("/auth/login", "POST", json.toString()) { ok, body ->
-            if (ok && body != null) {
-                val obj = JSONObject(body)
-                tokenManager.saveLogin(
-                    token = obj.getString("token"),
-                    userId = obj.getString("user_id"),
-                    username = obj.getString("username"),
-                    role = obj.getString("role")
-                )
-                val code = obj.optString("parent_code", null)
-                if (!code.isNullOrBlank()) {
-                    prefs.edit().putString("my_parent_code", code).apply()
+            try {
+                if (ok && body != null) {
+                    val obj = JSONObject(body)
+                    tokenManager.saveLogin(
+                        token = obj.getString("token"),
+                        userId = obj.getString("user_id"),
+                        username = obj.getString("username"),
+                        role = obj.getString("role")
+                    )
+                    val code = obj.optString("parent_code", null)
+                    if (!code.isNullOrBlank()) {
+                        prefs.edit().putString("my_parent_code", code).apply()
+                    }
                 }
+                callback(ok, if (ok) null else body)
+            } catch (e: Exception) {
+                callback(false, e.message ?: "Parse error")
             }
-            callback(ok, if (ok) null else body)
         }
     }
 
@@ -176,19 +184,23 @@ class SyncClient(private val context: Context) {
         }
         val token = tokenManager.getToken() ?: run { callback(null); return }
         apiRequest("/parent/code", "GET", token = token) { ok, body ->
-            if (ok && body != null) {
-                val code = JSONObject(body).optString("parent_code", null)
-                if (!code.isNullOrBlank()) {
-                    prefs.edit().putString("my_parent_code", code).apply()
+            try {
+                if (ok && body != null) {
+                    val code = JSONObject(body).optString("parent_code", null)
+                    if (!code.isNullOrBlank()) {
+                        prefs.edit().putString("my_parent_code", code).apply()
+                    }
+                    callback(code)
+                } else {
+                    callback(null)
                 }
-                callback(code)
-            } else {
+            } catch (e: Exception) {
                 callback(null)
             }
         }
     }
 
-    // ── Device registration (now uses JWT) ──
+    // ── Device registration ──
 
     fun registerDevice(name: String, callback: (Boolean, String?) -> Unit) {
         val token = tokenManager.getToken() ?: run {
@@ -200,19 +212,23 @@ class SyncClient(private val context: Context) {
             .put("name", name)
             .put("username", tokenManager.getUsername() ?: "")
         apiRequest("/device/register", "POST", json.toString(), token = token) { ok, body ->
-            if (ok && body != null) {
-                val obj = JSONObject(body)
-                prefs.edit()
-                    .putString("api_key", obj.getString("api_key"))
-                    .putString("device_id", obj.getString("device_id"))
-                    .putString("device_name", name)
-                    .apply()
+            try {
+                if (ok && body != null) {
+                    val obj = JSONObject(body)
+                    prefs.edit()
+                        .putString("api_key", obj.getString("api_key"))
+                        .putString("device_id", obj.getString("device_id"))
+                        .putString("device_name", name)
+                        .apply()
+                }
+                callback(ok, if (ok) null else body)
+            } catch (e: Exception) {
+                callback(false, e.message ?: "Parse error")
             }
-            callback(ok, if (ok) null else body)
         }
     }
 
-    // ── Sync (uses api_key, unchanged) ──
+    // ── Sync (uses api_key) ──
 
     fun syncToday(totalSeconds: Int, callback: (Boolean, String?) -> Unit) {
         val key = apiKey ?: run { callback(false, "Not configured"); return }
@@ -224,16 +240,20 @@ class SyncClient(private val context: Context) {
             .put("sessions", JSONArray())
 
         apiRequest("/sync", "POST", json.toString(), apiKey = key) { ok, body ->
-            if (ok && body != null) {
-                val obj = JSONObject(body)
-                val limit = obj.optInt("daily_limit_minutes", 0)
-                prefs.edit().putInt("cloud_limit_minutes", limit).apply()
+            try {
+                if (ok && body != null) {
+                    val obj = JSONObject(body)
+                    val limit = obj.optInt("daily_limit_minutes", 0)
+                    prefs.edit().putInt("cloud_limit_minutes", limit).apply()
+                }
+                callback(ok, if (ok) null else body)
+            } catch (e: Exception) {
+                callback(false, e.message ?: "Parse error")
             }
-            callback(ok, if (ok) null else body)
         }
     }
 
-    // ── Stats (uses api_key, unchanged) ──
+    // ── Stats (uses api_key) ──
 
     fun fetchStats(days: Int = 7, callback: (CloudStats?, String?) -> Unit) {
         val key = apiKey ?: run { callback(null, "Not configured"); return }
@@ -249,35 +269,39 @@ class SyncClient(private val context: Context) {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string() ?: "{}"
-                if (!response.isSuccessful) {
-                    val msg = JSONObject(body).optString("detail", "Error ${response.code}")
-                    mainHandler.post { callback(null, msg) }
-                    return
-                }
+                val body = try { response.body?.string() ?: "{}" } catch (e: Exception) { "{}" }
+                try {
+                    if (!response.isSuccessful) {
+                        val msg = JSONObject(body).optString("detail", "Error ${response.code}")
+                        mainHandler.post { callback(null, msg) }
+                        return
+                    }
 
-                val json = JSONObject(body)
-                val todayJson = json.optJSONObject("today") ?: JSONObject()
-                val historyArray = json.optJSONArray("history") ?: JSONArray()
+                    val json = JSONObject(body)
+                    val todayJson = json.optJSONObject("today") ?: JSONObject()
+                    val historyArray = json.optJSONArray("history") ?: JSONArray()
 
-                val history = mutableListOf<DayEntry>()
-                for (i in 0 until historyArray.length()) {
-                    val h = historyArray.getJSONObject(i)
-                    history.add(
-                        DayEntry(
-                            date = h.optString("date", ""),
-                            totalSeconds = h.optInt("total_seconds", 0),
-                            limitMinutes = h.optInt("limit_minutes", 0),
+                    val history = mutableListOf<DayEntry>()
+                    for (i in 0 until historyArray.length()) {
+                        val h = historyArray.getJSONObject(i)
+                        history.add(
+                            DayEntry(
+                                date = h.optString("date", ""),
+                                totalSeconds = h.optInt("total_seconds", 0),
+                                limitMinutes = h.optInt("limit_minutes", 0),
+                            )
                         )
-                    )
-                }
+                    }
 
-                val stats = CloudStats(
-                    todaySeconds = todayJson.optInt("total_seconds", 0),
-                    limitMinutes = todayJson.optInt("limit_minutes", 0),
-                    history = history,
-                )
-                mainHandler.post { callback(stats, null) }
+                    val stats = CloudStats(
+                        todaySeconds = todayJson.optInt("total_seconds", 0),
+                        limitMinutes = todayJson.optInt("limit_minutes", 0),
+                        history = history,
+                    )
+                    mainHandler.post { callback(stats, null) }
+                } catch (e: Exception) {
+                    mainHandler.post { callback(null, e.message ?: "Parse error") }
+                }
             }
         })
     }
@@ -288,25 +312,29 @@ class SyncClient(private val context: Context) {
         val token = tokenManager.getToken() ?: run { callback(null, "Not logged in"); return }
 
         apiRequest("/parent/children", "GET", token = token) { ok, body ->
-            if (ok && body != null) {
-                val json = JSONObject(body)
-                val arr = json.optJSONArray("children") ?: JSONArray()
-                val list = mutableListOf<ChildInfo>()
-                for (i in 0 until arr.length()) {
-                    val c = arr.getJSONObject(i)
-                    list.add(
-                        ChildInfo(
-                            deviceId = c.getString("device_id"),
-                            name = c.getString("name"),
-                            apiKey = c.getString("api_key"),
-                            dailyLimitMinutes = c.getInt("daily_limit_minutes"),
-                            todaySeconds = c.getInt("today_seconds"),
+            try {
+                if (ok && body != null) {
+                    val json = JSONObject(body)
+                    val arr = json.optJSONArray("children") ?: JSONArray()
+                    val list = mutableListOf<ChildInfo>()
+                    for (i in 0 until arr.length()) {
+                        val c = arr.getJSONObject(i)
+                        list.add(
+                            ChildInfo(
+                                deviceId = c.getString("device_id"),
+                                name = c.getString("name"),
+                                apiKey = c.getString("api_key"),
+                                dailyLimitMinutes = c.getInt("daily_limit_minutes"),
+                                todaySeconds = c.getInt("today_seconds"),
+                            )
                         )
-                    )
+                    }
+                    callback(list, null)
+                } else {
+                    callback(null, body)
                 }
-                callback(list, null)
-            } else {
-                callback(null, body)
+            } catch (e: Exception) {
+                callback(null, e.message ?: "Parse error")
             }
         }
     }
@@ -317,15 +345,19 @@ class SyncClient(private val context: Context) {
             .put("child_username", childUsername)
             .put("name", deviceName)
         apiRequest("/parent/register-child-device", "POST", json.toString(), token = token) { ok, body ->
-            if (ok && body != null) {
-                val obj = JSONObject(body)
-                prefs.edit()
-                    .putString("api_key", obj.getString("api_key"))
-                    .putString("device_id", obj.getString("device_id"))
-                    .putString("device_name", deviceName)
-                    .apply()
+            try {
+                if (ok && body != null) {
+                    val obj = JSONObject(body)
+                    prefs.edit()
+                        .putString("api_key", obj.getString("api_key"))
+                        .putString("device_id", obj.getString("device_id"))
+                        .putString("device_name", deviceName)
+                        .apply()
+                }
+                callback(ok, if (ok) null else body)
+            } catch (e: Exception) {
+                callback(false, e.message ?: "Parse error")
             }
-            callback(ok, if (ok) null else body)
         }
     }
 
@@ -360,23 +392,27 @@ class SyncClient(private val context: Context) {
         val token = tokenManager.getToken() ?: run { callback(null, "Not logged in"); return }
 
         apiRequest("/commands/pending", "GET", token = token) { ok, body ->
-            if (ok && body != null) {
-                val json = JSONObject(body)
-                val arr = json.optJSONArray("commands") ?: JSONArray()
-                val list = mutableListOf<PendingCommandInfo>()
-                for (i in 0 until arr.length()) {
-                    val c = arr.getJSONObject(i)
-                    list.add(
-                        PendingCommandInfo(
-                            id = c.getInt("id"),
-                            commandType = c.getString("command_type"),
-                            createdAt = c.optString("created_at", ""),
+            try {
+                if (ok && body != null) {
+                    val json = JSONObject(body)
+                    val arr = json.optJSONArray("commands") ?: JSONArray()
+                    val list = mutableListOf<PendingCommandInfo>()
+                    for (i in 0 until arr.length()) {
+                        val c = arr.getJSONObject(i)
+                        list.add(
+                            PendingCommandInfo(
+                                id = c.getInt("id"),
+                                commandType = c.getString("command_type"),
+                                createdAt = c.optString("created_at", ""),
+                            )
                         )
-                    )
+                    }
+                    callback(list, null)
+                } else {
+                    callback(null, body)
                 }
-                callback(list, null)
-            } else {
-                callback(null, body)
+            } catch (e: Exception) {
+                callback(null, e.message ?: "Parse error")
             }
         }
     }
@@ -410,11 +446,15 @@ class SyncClient(private val context: Context) {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string() ?: "{}"
-                if (response.isSuccessful) {
-                    mainHandler.post { callback(true, null) }
-                } else {
-                    mainHandler.post { callback(false, "Server returned ${response.code}") }
+                try {
+                    val body = response.body?.string() ?: "{}"
+                    if (response.isSuccessful) {
+                        mainHandler.post { callback(true, null) }
+                    } else {
+                        mainHandler.post { callback(false, "Server returned ${response.code}") }
+                    }
+                } catch (e: Exception) {
+                    mainHandler.post { callback(false, e.message ?: "Error") }
                 }
             }
         })

@@ -65,14 +65,22 @@ class LoginActivity : AppCompatActivity() {
                 startActivity(Intent(this, SignupActivity::class.java))
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            val stack = android.util.Log.getStackTraceString(e)
+            getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+                .edit().putString("crash_log", stack).apply()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (tokenManager.isLoggedIn()) {
-            routeToDashboard()
+        try {
+            if (tokenManager.isLoggedIn()) {
+                routeToDashboard()
+            }
+        } catch (e: Exception) {
+            val stack = android.util.Log.getStackTraceString(e)
+            getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+                .edit().putString("crash_log", stack).apply()
         }
     }
 
