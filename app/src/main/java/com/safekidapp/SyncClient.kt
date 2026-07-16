@@ -118,11 +118,14 @@ class SyncClient(private val context: Context) {
 
     // ── Auth ──
 
-    fun register(username: String, password: String, role: String, callback: (Boolean, String?) -> Unit) {
+    fun register(username: String, password: String, role: String, parentCode: String? = null, callback: (Boolean, String?) -> Unit) {
         val json = JSONObject()
             .put("username", username)
             .put("password", password)
             .put("role", role)
+        if (!parentCode.isNullOrBlank()) {
+            json.put("parent_code", parentCode)
+        }
 
         apiRequest("/auth/register", "POST", json.toString()) { ok, body ->
             if (ok && body != null) {
@@ -133,6 +136,10 @@ class SyncClient(private val context: Context) {
                     username = obj.getString("username"),
                     role = obj.getString("role")
                 )
+                val code = obj.optString("parent_code", null)
+                if (!code.isNullOrBlank()) {
+                    prefs.edit().putString("my_parent_code", code).apply()
+                }
             }
             callback(ok, if (ok) null else body)
         }
@@ -152,8 +159,32 @@ class SyncClient(private val context: Context) {
                     username = obj.getString("username"),
                     role = obj.getString("role")
                 )
+                val code = obj.optString("parent_code", null)
+                if (!code.isNullOrBlank()) {
+                    prefs.edit().putString("my_parent_code", code).apply()
+                }
             }
             callback(ok, if (ok) null else body)
+        }
+    }
+
+    fun getParentCode(callback: (String?) -> Unit) {
+        val cached = prefs.getString("my_parent_code", null)
+        if (cached != null) {
+            callback(cached)
+            return
+        }
+        val token = tokenManager.getToken() ?: run { callback(null); return }
+        apiRequest("/parent/code", "GET", token = token) { ok, body ->
+            if (ok && body != null) {
+                val code = JSONObject(body).optString("parent_code", null)
+                if (!code.isNullOrBlank()) {
+                    prefs.edit().putString("my_parent_code", code).apply()
+                }
+                callback(code)
+            } else {
+                callback(null)
+            }
         }
     }
 

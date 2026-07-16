@@ -56,11 +56,10 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
-        android:id="@+id/tvRoleLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Eres:"
+        android:text="Tipo de cuenta"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -85,6 +84,20 @@
             android:checked="true"
             android:text="Hijo" />
     </RadioGroup>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilParentCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Código del padre (solo para hijos)">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etParentCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/btnSignup"

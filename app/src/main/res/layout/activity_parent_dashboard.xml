@@ -34,32 +34,14 @@
         android:layout_marginTop="16dp"
         android:layout_weight="1" />
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilLinkChild"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Usuario hijo a vincular">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etLinkChild"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <Button
-            android:id="@+id/btnLinkChild"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Vincular" />
-    </LinearLayout>
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="Comparte tu código con los hijos para que se vinculen al registrarse"
+        android:textSize="12sp"
+        android:textColor="#999999" />
 
     <Button
         android:id="@+id/btnParentSettings"

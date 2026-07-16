@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 
@@ -27,30 +28,25 @@ class LoginActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_login)
 
-        val etServerUrl = findViewById<TextInputEditText>(R.id.etServerUrl)
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (prefs.getString("server_url", null) == null) {
+            showServerUrlDialog()
+        }
+
         val etUsername = findViewById<TextInputEditText>(R.id.etUsername)
         val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val btnGoSignup = findViewById<Button>(R.id.btnGoSignup)
         val tvStatus = findViewById<TextView>(R.id.tvLoginStatus)
 
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        val savedUrl = prefs.getString("server_url", null)
-        if (savedUrl != null) {
-            etServerUrl.setText(savedUrl)
-        }
-
         btnLogin.setOnClickListener {
-            val url = etServerUrl.text.toString().trim()
             val username = etUsername.text.toString().trim()
             val password = etPassword.text.toString()
 
-            if (url.isBlank() || username.isBlank() || password.isBlank()) {
+            if (username.isBlank() || password.isBlank()) {
                 Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-
-            prefs.edit().putString("server_url", url.trimEnd('/')).apply()
 
             tvStatus.text = "Iniciando sesión..."
             btnLogin.isEnabled = false
@@ -75,6 +71,30 @@ class LoginActivity : AppCompatActivity() {
         if (tokenManager.isLoggedIn()) {
             routeToDashboard()
         }
+    }
+
+    private fun showServerUrlDialog() {
+        val input = TextInputEditText(this)
+        input.setText("https://thinc.site/api/safekid")
+        input.setSelection(input.text!!.length)
+
+        AlertDialog.Builder(this)
+            .setTitle("Configurar servidor")
+            .setMessage("Ingresa la URL del servidor SafeKid")
+            .setView(input)
+            .setCancelable(false)
+            .setPositiveButton("Guardar") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.isNotBlank()) {
+                    getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("server_url", url.trimEnd('/'))
+                        .apply()
+                } else {
+                    showServerUrlDialog()
+                }
+            }
+            .show()
     }
 
     private fun routeToDashboard() {
