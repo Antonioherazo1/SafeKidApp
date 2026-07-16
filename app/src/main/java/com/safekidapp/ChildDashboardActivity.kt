@@ -36,7 +36,12 @@ class ChildDashboardActivity : AppCompatActivity() {
             syncClient = SyncClient(this)
             tokenManager = TokenManager(this)
 
-            tvUser.text = "Hola, ${tokenManager.getUsername() ?: "Hijo"}"
+            val parentName = tokenManager.getParentUsername()
+            tvUser.text = if (parentName != null) {
+                "Hola, ${tokenManager.getUsername() ?: "Hijo"} • Padre: $parentName"
+            } else {
+                "Hola, ${tokenManager.getUsername() ?: "Hijo"}"
+            }
 
             findViewById<Button>(R.id.btnChildLogout).setOnClickListener {
                 tokenManager.logout()

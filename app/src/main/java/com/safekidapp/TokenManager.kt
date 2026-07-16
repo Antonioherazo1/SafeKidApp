@@ -6,7 +6,7 @@ class TokenManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
 
-    fun saveLogin(token: String, userId: String, username: String, role: String, deviceId: String? = null, apiKey: String? = null) {
+    fun saveLogin(token: String, userId: String, username: String, role: String, deviceId: String? = null, apiKey: String? = null, parentUsername: String? = null) {
         prefs.edit()
             .putString("jwt_token", token)
             .putString("user_id", userId)
@@ -14,6 +14,7 @@ class TokenManager(context: Context) {
             .putString("role", role)
             .putString("device_id", deviceId)
             .putString("api_key", apiKey)
+            .putString("parent_username", parentUsername)
             .apply()
     }
 
@@ -28,6 +29,8 @@ class TokenManager(context: Context) {
     fun getDeviceId(): String? = prefs.getString("device_id", null)
 
     fun getApiKey(): String? = prefs.getString("api_key", null)
+
+    fun getParentUsername(): String? = prefs.getString("parent_username", null)
 
     fun isLoggedIn(): Boolean = getToken() != null
 
@@ -49,6 +52,7 @@ class TokenManager(context: Context) {
             .remove("role")
             .remove("device_id")
             .remove("api_key")
+            .remove("parent_username")
             .apply()
     }
 }

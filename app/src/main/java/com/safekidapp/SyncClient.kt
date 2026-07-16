@@ -134,6 +134,7 @@ class SyncClient(private val context: Context) {
                     val obj = JSONObject(body)
                     val deviceId = obj.optString("device_id", null)
                     val apiKey = obj.optString("api_key", null)
+                    val parentUsername = obj.optString("parent_username", null)
                     tokenManager.saveLogin(
                         token = obj.getString("token"),
                         userId = obj.getString("user_id"),
@@ -141,6 +142,7 @@ class SyncClient(private val context: Context) {
                         role = obj.getString("role"),
                         deviceId = if (deviceId.isNullOrBlank()) null else deviceId,
                         apiKey = if (apiKey.isNullOrBlank()) null else apiKey,
+                        parentUsername = if (parentUsername.isNullOrBlank()) null else parentUsername,
                     )
                     val code = obj.optString("parent_code", null)
                     if (!code.isNullOrBlank()) {
@@ -171,6 +173,7 @@ class SyncClient(private val context: Context) {
                     val obj = JSONObject(body)
                     val devId = obj.optString("device_id", null)
                     val devKey = obj.optString("api_key", null)
+                    val parentUsername = obj.optString("parent_username", null)
                     tokenManager.saveLogin(
                         token = obj.getString("token"),
                         userId = obj.getString("user_id"),
@@ -178,6 +181,7 @@ class SyncClient(private val context: Context) {
                         role = obj.getString("role"),
                         deviceId = if (devId.isNullOrBlank()) null else devId,
                         apiKey = if (devKey.isNullOrBlank()) null else devKey,
+                        parentUsername = if (parentUsername.isNullOrBlank()) null else parentUsername,
                     )
                     val code = obj.optString("parent_code", null)
                     if (!code.isNullOrBlank()) {
