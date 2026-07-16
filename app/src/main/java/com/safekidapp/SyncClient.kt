@@ -132,15 +132,25 @@ class SyncClient(private val context: Context) {
             try {
                 if (ok && body != null) {
                     val obj = JSONObject(body)
+                    val deviceId = obj.optString("device_id", null)
+                    val apiKey = obj.optString("api_key", null)
                     tokenManager.saveLogin(
                         token = obj.getString("token"),
                         userId = obj.getString("user_id"),
                         username = obj.getString("username"),
-                        role = obj.getString("role")
+                        role = obj.getString("role"),
+                        deviceId = if (deviceId.isNullOrBlank()) null else deviceId,
+                        apiKey = if (apiKey.isNullOrBlank()) null else apiKey,
                     )
                     val code = obj.optString("parent_code", null)
                     if (!code.isNullOrBlank()) {
                         prefs.edit().putString("my_parent_code", code).apply()
+                    }
+                    if (!deviceId.isNullOrBlank()) {
+                        prefs.edit().putString("device_id", deviceId).apply()
+                    }
+                    if (!apiKey.isNullOrBlank()) {
+                        prefs.edit().putString("api_key", apiKey).apply()
                     }
                 }
                 callback(ok, if (ok) null else body)
@@ -159,15 +169,25 @@ class SyncClient(private val context: Context) {
             try {
                 if (ok && body != null) {
                     val obj = JSONObject(body)
+                    val devId = obj.optString("device_id", null)
+                    val devKey = obj.optString("api_key", null)
                     tokenManager.saveLogin(
                         token = obj.getString("token"),
                         userId = obj.getString("user_id"),
                         username = obj.getString("username"),
-                        role = obj.getString("role")
+                        role = obj.getString("role"),
+                        deviceId = if (devId.isNullOrBlank()) null else devId,
+                        apiKey = if (devKey.isNullOrBlank()) null else devKey,
                     )
                     val code = obj.optString("parent_code", null)
                     if (!code.isNullOrBlank()) {
                         prefs.edit().putString("my_parent_code", code).apply()
+                    }
+                    if (!devId.isNullOrBlank()) {
+                        prefs.edit().putString("device_id", devId).apply()
+                    }
+                    if (!devKey.isNullOrBlank()) {
+                        prefs.edit().putString("api_key", devKey).apply()
                     }
                 }
                 callback(ok, if (ok) null else body)

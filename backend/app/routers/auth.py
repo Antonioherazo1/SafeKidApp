@@ -1,12 +1,13 @@
 import secrets
 import string
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User, Device, UserDevice
 from app.schemas import RegisterRequest, LoginRequest, AuthResponse
-from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.auth import hash_password, verify_password, create_access_token, get_current_user, generate_api_key
 
 router = APIRouter(tags=["auth"])
 
@@ -47,6 +48,8 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
+    device_id = None
+    api_key = None
     if body.role == "child" and body.parent_code:
         result = await db.execute(select(User).where(
             User.parent_code == body.parent_code,
@@ -55,7 +58,17 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         parent = result.scalar_one_or_none()
         if parent:
             user.parent_id = parent.id
+            did = uuid.uuid4()
+            device_id = str(did)
+            api_key = generate_api_key(device_id)
+            device = Device(id=did, name=f"Dispositivo de {user.username}", api_key=api_key)
+            db.add(device)
+            await db.flush()
+            link = UserDevice(user_id=user.id, device_id=device.id)
+            db.add(link)
             await db.commit()
+            await db.refresh(device)
+            api_key = device.api_key
 
     token = create_access_token(str(user.id), user.username, user.role)
     return AuthResponse(
@@ -64,6 +77,8 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         username=user.username,
         role=user.role,
         parent_code=user.parent_code,
+        device_id=device_id,
+        api_key=api_key,
     )
 
 
@@ -74,6 +89,20 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
+    device_id = None
+    api_key = None
+    if user.role == "child":
+        link_result = await db.execute(
+            select(UserDevice).where(UserDevice.user_id == user.id)
+            .limit(1)
+        )
+        link = link_result.scalar_one_or_none()
+        if link:
+            device = await db.get(Device, link.device_id)
+            if device:
+                device_id = str(device.id)
+                api_key = device.api_key
+
     token = create_access_token(str(user.id), user.username, user.role)
     return AuthResponse(
         token=token,
@@ -81,6 +110,8 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         username=user.username,
         role=user.role,
         parent_code=user.parent_code,
+        device_id=device_id,
+        api_key=api_key,
     )
 
 
