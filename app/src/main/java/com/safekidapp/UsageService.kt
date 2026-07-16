@@ -205,6 +205,10 @@ class UsageService : Service() {
     private fun checkSchedule() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val withinSchedule = isWithinSchedule()
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        val cal = Calendar.getInstance()
+        val nowMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
 
         if (prefs.getBoolean("kiosk_active", false)) {
             if (tracker.isDifferentDay()) {
@@ -222,17 +226,24 @@ class UsageService : Service() {
             return
         }
 
-        if (!withinSchedule && prefs.getInt("schedule_start_min", -1) >= 0) {
-            val hourStart = prefs.getInt("schedule_start_min", 0) / 60
-            val minStart = prefs.getInt("schedule_start_min", 0) % 60
-            val hourEnd = prefs.getInt("schedule_end_min", 0) / 60
-            val minEnd = prefs.getInt("schedule_end_min", 0) % 60
+        if (!withinSchedule && sStart >= 0) {
+            val hourStart = sStart / 60
+            val minStart = sStart % 60
+            val hourEnd = sEnd / 60
+            val minEnd = sEnd % 60
             prefs.edit()
                 .putString("block_reason", "schedule")
                 .putString("block_schedule_start", String.format("%02d:%02d", hourStart, minStart))
                 .putString("block_schedule_end", String.format("%02d:%02d", hourEnd, minEnd))
                 .apply()
             triggerBlock()
+        } else {
+            // Debug: why we DIDN'T block (store even if we're about to block via other path)
+            prefs.edit()
+                .putString("block_reason", "schedule_debug")
+                .putString("block_schedule_start", "S:$sStart E:$sEnd")
+                .putString("block_schedule_end", "AHORA:$nowMin DENTRO:$withinSchedule TZ:${cal.timeZone.id}")
+                .apply()
         }
     }
 

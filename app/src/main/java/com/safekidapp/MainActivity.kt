@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.security.MessageDigest
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -63,16 +64,27 @@ class MainActivity : AppCompatActivity() {
         val tvReason = findViewById<TextView>(R.id.tvBlockReason)
         val tvSchedule = findViewById<TextView>(R.id.tvBlockSchedule)
 
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        val cal = Calendar.getInstance()
+        val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+        val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
+        val dbg = "S:${sStart}-${sEnd} AHORA:${now} DENTRO:${within} TZ:${cal.timeZone.displayName}"
+
         if (reason == "schedule") {
             tvTitle.text = "Equipo bloqueado"
             tvReason.text = "Fuera del horario de uso"
             val start = prefs.getString("block_schedule_start", "--:--")
             val end = prefs.getString("block_schedule_end", "--:--")
-            tvSchedule.text = "Horario permitido: $start – $end"
+            tvSchedule.text = "Horario permitido: $start – $end\n$dbg"
             tvSchedule.visibility = View.VISIBLE
         } else if (reason == "time_limit") {
             tvTitle.text = "Tiempo de pantalla terminado"
             tvReason.text = "Alcanzaste el límite diario"
+            tvSchedule.visibility = View.GONE
+        } else if (reason == "schedule_debug") {
+            tvTitle.text = "DEBUG - No bloquea por horario"
+            tvReason.text = dbg
             tvSchedule.visibility = View.GONE
         } else {
             tvTitle.text = "Dispositivo bloqueado"
