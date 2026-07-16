@@ -31,6 +31,7 @@ data class DayEntry(
 data class ChildInfo(
     val deviceId: String,
     val name: String,
+    val username: String,
     val apiKey: String,
     val dailyLimitMinutes: Int,
     val todaySeconds: Int
@@ -320,13 +321,14 @@ class SyncClient(private val context: Context) {
                     for (i in 0 until arr.length()) {
                         val c = arr.getJSONObject(i)
                         list.add(
-                            ChildInfo(
-                                deviceId = c.getString("device_id"),
-                                name = c.getString("name"),
-                                apiKey = c.getString("api_key"),
-                                dailyLimitMinutes = c.getInt("daily_limit_minutes"),
-                                todaySeconds = c.getInt("today_seconds"),
-                            )
+                        ChildInfo(
+                            deviceId = c.getString("device_id"),
+                            name = c.getString("name"),
+                            username = c.getString("username"),
+                            apiKey = c.getString("api_key"),
+                            dailyLimitMinutes = c.getInt("daily_limit_minutes"),
+                            todaySeconds = c.getInt("today_seconds"),
+                        )
                         )
                     }
                     callback(list, null)

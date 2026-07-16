@@ -14,6 +14,7 @@ class ChildDetailActivity : AppCompatActivity() {
 
     private var deviceId: String = ""
     private var childName: String = ""
+    private var childUsername: String = ""
     private var childApiKey: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +26,7 @@ class ChildDetailActivity : AppCompatActivity() {
 
         deviceId = intent.getStringExtra("device_id") ?: ""
         childName = intent.getStringExtra("name") ?: ""
+        childUsername = intent.getStringExtra("username") ?: ""
         childApiKey = intent.getStringExtra("api_key") ?: ""
 
         val title = findViewById<TextView>(R.id.tvChildDetailTitle)
@@ -52,7 +54,7 @@ class ChildDetailActivity : AppCompatActivity() {
             }
             tvStatus.text = "Actualizando límite..."
             btnSetLimit.isEnabled = false
-            syncClient.setChildLimit(tokenManager.getUsername() ?: "", minutes) { ok, error ->
+            syncClient.setChildLimit(childUsername, minutes) { ok, error ->
                 btnSetLimit.isEnabled = true
                 tvStatus.text = if (ok) "Límite actualizado a $minutes min" else "Error: ${error ?: "conexión"}"
             }

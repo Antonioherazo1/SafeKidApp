@@ -46,6 +46,7 @@ class ParentDashboardActivity : AppCompatActivity() {
             val intent = Intent(this, ChildDetailActivity::class.java)
             intent.putExtra("device_id", child.deviceId)
             intent.putExtra("name", child.name)
+            intent.putExtra("username", child.username)
             intent.putExtra("api_key", child.apiKey)
             intent.putExtra("daily_limit", child.dailyLimitMinutes)
             intent.putExtra("today_seconds", child.todaySeconds)
