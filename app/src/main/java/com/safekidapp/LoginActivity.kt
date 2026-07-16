@@ -1,14 +1,11 @@
 package com.safekidapp
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.textfield.TextInputEditText
 
 class LoginActivity : AppCompatActivity() {
 
@@ -30,7 +27,7 @@ class LoginActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (prefs.getString("server_url", null) == null) {
-            showServerUrlDialog()
+            prefs.edit().putString("server_url", "https://thinc.site/api/safekid").apply()
         }
 
         val etUsername = findViewById<TextInputEditText>(R.id.etUsername)
@@ -71,30 +68,6 @@ class LoginActivity : AppCompatActivity() {
         if (tokenManager.isLoggedIn()) {
             routeToDashboard()
         }
-    }
-
-    private fun showServerUrlDialog() {
-        val input = TextInputEditText(this)
-        input.setText("https://thinc.site/api/safekid")
-        input.setSelection(input.text!!.length)
-
-        AlertDialog.Builder(this)
-            .setTitle("Configurar servidor")
-            .setMessage("Ingresa la URL del servidor SafeKid")
-            .setView(input)
-            .setCancelable(false)
-            .setPositiveButton("Guardar") { _, _ ->
-                val url = input.text.toString().trim()
-                if (url.isNotBlank()) {
-                    getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("server_url", url.trimEnd('/'))
-                        .apply()
-                } else {
-                    showServerUrlDialog()
-                }
-            }
-            .show()
     }
 
     private fun routeToDashboard() {
