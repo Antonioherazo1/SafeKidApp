@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    container_name: safekid-api
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - API_KEY_SALT=${API_KEY_SALT}
+    env_file:
+      - .env
