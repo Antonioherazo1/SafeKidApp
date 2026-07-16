@@ -76,10 +76,18 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/tvChildSchedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="#7C4DFF"
+        android:textSize="14sp" />
+
+    <TextView
         android:id="@+id/tvChildCloud"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:textColor="#9CA3AF"
         android:textSize="14sp" />
 

@@ -42,8 +42,10 @@ class UsageService : Service() {
                 }
                 Intent.ACTION_USER_PRESENT -> {
                     userPresent = true
-                    if (screenOn && isTracking()) {
-                        tracker.setScreenOnTimestamp(System.currentTimeMillis())
+                    if (screenOn) {
+                        if (isTracking()) {
+                            tracker.setScreenOnTimestamp(System.currentTimeMillis())
+                        }
                         startPeriodicCheck()
                     }
                 }
@@ -85,8 +87,10 @@ class UsageService : Service() {
         screenOn = pm.isInteractive
         userPresent = !km.isKeyguardLocked
 
-        if (screenOn && userPresent && isTracking()) {
-            tracker.setScreenOnTimestamp(System.currentTimeMillis())
+        if (screenOn && userPresent) {
+            if (isTracking()) {
+                tracker.setScreenOnTimestamp(System.currentTimeMillis())
+            }
             startPeriodicCheck()
         }
 
@@ -159,11 +163,9 @@ class UsageService : Service() {
         stopPeriodicCheck()
         periodicRunnable = Runnable {
             periodicCheck()
-            if (userPresent && screenOn) {
-                handler.postDelayed(periodicRunnable!!, 10000)
-            }
+            handler.postDelayed(periodicRunnable!!, 10000)
         }
-        handler.postDelayed(periodicRunnable!!, 10000)
+        handler.postDelayed(periodicRunnable!!, 5000)
     }
 
     private fun stopPeriodicCheck() {
@@ -177,9 +179,9 @@ class UsageService : Service() {
         stopScheduleMonitor()
         scheduleMonitorRunnable = Runnable {
             syncAndCheckSchedule()
-            handler.postDelayed(scheduleMonitorRunnable!!, 30000)
+            handler.postDelayed(scheduleMonitorRunnable!!, 15000)
         }
-        handler.postDelayed(scheduleMonitorRunnable!!, 5000)
+        handler.postDelayed(scheduleMonitorRunnable!!, 3000)
     }
 
     private fun stopScheduleMonitor() {

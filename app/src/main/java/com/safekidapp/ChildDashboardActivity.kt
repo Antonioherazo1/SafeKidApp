@@ -26,6 +26,7 @@ class ChildDashboardActivity : AppCompatActivity() {
     private val tvRemaining: TextView get() = findViewById(R.id.tvChildRemaining)
     private val tvUsed: TextView get() = findViewById(R.id.tvChildUsed)
     private val tvCloud: TextView get() = findViewById(R.id.tvChildCloud)
+    private val tvSchedule: TextView get() = findViewById(R.id.tvChildSchedule)
     private val btnLogout: Button get() = findViewById(R.id.btnChildLogout)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -184,6 +185,16 @@ class ChildDashboardActivity : AppCompatActivity() {
         val tracking = tracker.isTrackingEnabled()
         btnLogout.isEnabled = !tracking
         btnLogout.alpha = if (tracking) 0.4f else 1.0f
+
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        tvSchedule.text = if (sStart >= 0 && sEnd >= 0) {
+            val h1 = sStart / 60; val m1 = sStart % 60
+            val h2 = sEnd / 60; val m2 = sEnd % 60
+            "Horario: %02d:%02d – %02d:%02d".format(h1, m1, h2, m2)
+        } else {
+            "Sin horario configurado"
+        }
         val limit = tracker.getDailyLimit()
         val used = tracker.getAccumulatedUsage()
         val currentSession = if (tracker.getScreenOnTimestamp() > 0)
