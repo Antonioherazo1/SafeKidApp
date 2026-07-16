@@ -176,8 +176,7 @@ class UsageService : Service() {
     private fun startScheduleMonitor() {
         stopScheduleMonitor()
         scheduleMonitorRunnable = Runnable {
-            syncCloudSchedule()
-            checkSchedule()
+            syncAndCheckSchedule()
             handler.postDelayed(scheduleMonitorRunnable!!, 30000)
         }
         handler.postDelayed(scheduleMonitorRunnable!!, 5000)
@@ -188,10 +187,15 @@ class UsageService : Service() {
         scheduleMonitorRunnable = null
     }
 
-    private fun syncCloudSchedule() {
-        if (!syncClient.isConfigured()) return
-        val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
-        syncClient.syncToday(usedSeconds) { _, _ -> }
+    private fun syncAndCheckSchedule() {
+        if (syncClient.isConfigured()) {
+            val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
+            syncClient.syncToday(usedSeconds) { _, _ ->
+                checkSchedule()
+            }
+        } else {
+            checkSchedule()
+        }
     }
 
     private fun checkSchedule() {

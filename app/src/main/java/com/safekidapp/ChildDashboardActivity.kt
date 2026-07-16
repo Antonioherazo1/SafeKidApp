@@ -26,6 +26,7 @@ class ChildDashboardActivity : AppCompatActivity() {
     private val tvRemaining: TextView get() = findViewById(R.id.tvChildRemaining)
     private val tvUsed: TextView get() = findViewById(R.id.tvChildUsed)
     private val tvCloud: TextView get() = findViewById(R.id.tvChildCloud)
+    private val btnLogout: Button get() = findViewById(R.id.btnChildLogout)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,6 +182,8 @@ class ChildDashboardActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         val blocked = prefs.getBoolean("kiosk_active", false)
         val tracking = tracker.isTrackingEnabled()
+        btnLogout.isEnabled = !tracking
+        btnLogout.alpha = if (tracking) 0.4f else 1.0f
         val limit = tracker.getDailyLimit()
         val used = tracker.getAccumulatedUsage()
         val currentSession = if (tracker.getScreenOnTimestamp() > 0)
