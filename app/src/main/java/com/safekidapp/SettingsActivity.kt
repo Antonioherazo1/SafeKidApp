@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -79,8 +78,6 @@ class SettingsActivity : AppCompatActivity() {
             })
         }
 
-        setupCloudSection()
-
         findViewById<MaterialButton>(R.id.btnOverlayPermission).setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 startActivity(Intent(
@@ -116,88 +113,6 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Cancelar", null)
                 .show()
-        }
-    }
-
-    private fun setupCloudSection() {
-        val syncClient = SyncClient(this)
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-
-        val etUrl = findViewById<TextInputEditText>(R.id.etServerUrl)
-        val etName = findViewById<TextInputEditText>(R.id.etDeviceName)
-        val tvStatus = findViewById<TextView>(R.id.tvCloudStatus)
-
-        etUrl.setText(prefs.getString("server_url", ""))
-        etName.setText(syncClient.getDeviceName() ?: "")
-
-        updateCloudStatus(tvStatus, syncClient)
-
-        findViewById<MaterialButton>(R.id.btnCloudRegister).setOnClickListener {
-            val url = etUrl.text?.toString()?.trim() ?: ""
-            val name = etName.text?.toString()?.trim() ?: ""
-
-            if (url.isEmpty()) {
-                Toast.makeText(this, "Ingresa la URL del servidor", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (name.isEmpty()) {
-                Toast.makeText(this, "Ingresa un nombre para el dispositivo", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            prefs.edit().putString("server_url", url.trimEnd('/')).apply()
-
-            doRegister(tvStatus, syncClient, name)
-        }
-
-        findViewById<MaterialButton>(R.id.btnCloudSync).setOnClickListener {
-            if (!syncClient.isConfigured()) {
-                Toast.makeText(this, "Primero registra el dispositivo", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            tvStatus.text = "◌ Sincronizando..."
-            tvStatus.setTextColor(0xFFFFA500.toInt())
-
-            val tracker = UsageTracker(this)
-            val used = tracker.getAccumulatedUsage().toInt() / 1000
-
-            syncClient.syncToday(used) { success, error ->
-                if (success) {
-                    tvStatus.text = "● Sincronizado"
-                    tvStatus.setTextColor(0xFF4CAF50.toInt())
-                    Toast.makeText(this, "Datos sincronizados", Toast.LENGTH_SHORT).show()
-                } else {
-                    tvStatus.text = "✕ Error: ${error ?: "desconocido"}"
-                    tvStatus.setTextColor(0xFFFF5252.toInt())
-                }
-            }
-        }
-    }
-
-    private fun updateCloudStatus(tvStatus: TextView, client: SyncClient) {
-        if (client.isConfigured()) {
-            tvStatus.text = "● Conectado (${client.getDeviceName() ?: "sin nombre"})"
-            tvStatus.setTextColor(0xFF4CAF50.toInt())
-        } else {
-            tvStatus.text = "◎ Desconectado"
-            tvStatus.setTextColor(0xFF999999.toInt())
-        }
-    }
-
-    private fun doRegister(tvStatus: TextView, client: SyncClient, deviceName: String) {
-        tvStatus.text = "◌ Registrando..."
-        tvStatus.setTextColor(0xFFFFA500.toInt())
-
-        client.registerDevice(deviceName) { success, error ->
-            if (success) {
-                tvStatus.text = "● Conectado"
-                tvStatus.setTextColor(0xFF4CAF50.toInt())
-                Toast.makeText(this, "Dispositivo registrado correctamente", Toast.LENGTH_SHORT).show()
-            } else {
-                tvStatus.text = "✕ Error: ${error ?: "desconocido"}"
-                tvStatus.setTextColor(0xFFFF5252.toInt())
-            }
         }
     }
 
