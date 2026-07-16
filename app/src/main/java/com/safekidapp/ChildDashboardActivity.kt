@@ -170,24 +170,24 @@ class ChildDashboardActivity : AppCompatActivity() {
             .putBoolean("time_exceeded", false)
             .apply()
 
+        // 1. Immediate check from prefs (may be stale)
         if (outsideScheduleFromPrefs()) {
             blockNow("schedule")
             return
         }
 
+        // 2. Always start the service immediately (do NOT wait for sync callback)
+        startService(Intent(this, UsageService::class.java))
+        Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
+
+        // 3. Background sync + re-check (async)
         if (syncClient.isConfigured()) {
             val usedSeconds = (tracker.getAccumulatedUsage() / 1000).toInt()
             syncClient.syncToday(usedSeconds) { ok, _ ->
                 if (ok && outsideScheduleFromPrefs()) {
                     blockNow("schedule")
-                } else {
-                    startService(Intent(this, UsageService::class.java))
-                    Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
                 }
             }
-        } else {
-            startService(Intent(this, UsageService::class.java))
-            Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -321,23 +321,22 @@ class ChildDashboardActivity : AppCompatActivity() {
         tvCloud.setTextColor(0xFFFFA500.toInt())
 
         syncClient.syncToday(usedSeconds) { syncOk, _ ->
+            val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+            val sStart = prefs.getInt("schedule_start_min", -1)
+            val sEnd = prefs.getInt("schedule_end_min", -1)
+            val sStr = if (sStart >= 0) "H:%02d:%02d-%02d:%02d".format(sStart/60,sStart%60,sEnd/60,sEnd%60) else "Sin horario"
+            val errStr = if (sStart >= 0) sStr else "Error conexión"
+            tvCloud.text = if (syncOk) "● $sStr" else "✕ $errStr"
+            tvCloud.setTextColor(if (syncOk) 0xFF4CAF50.toInt() else 0xFFFF5252.toInt())
             if (syncOk) {
-                tvCloud.text = "● Sincronizado"
-                tvCloud.setTextColor(0xFF4CAF50.toInt())
                 syncClient.fetchStats(7) { stats, _ ->
                     if (stats != null) {
                         val usedMin = stats.todaySeconds / 60
                         val limitMin = stats.limitMinutes
-                        if (limitMin > 0) {
-                            tvCloud.text = "● $usedMin min de $limitMin min"
-                        } else {
-                            tvCloud.text = "● $usedMin min usado"
-                        }
+                        val extra = if (limitMin > 0) "$usedMin min de $limitMin min" else "$usedMin min usado"
+                        tvCloud.text = "● $sStr | $extra"
                     }
                 }
-            } else {
-                tvCloud.text = "✕ Error de conexión"
-                tvCloud.setTextColor(0xFFFF5252.toInt())
             }
         }
     }
