@@ -65,11 +65,19 @@ class ChildDashboardActivity : AppCompatActivity() {
             finish()
             return
         }
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("kiosk_active", false)) {
+            startActivity(Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            })
+            finish()
+            return
+        }
         if (!hasError) {
             updateDisplay()
             startAutoUpdate()
             startCommandPolling()
-            syncCloudData()
+            startCloudSync()
         }
     }
 
@@ -77,6 +85,7 @@ class ChildDashboardActivity : AppCompatActivity() {
         super.onPause()
         stopAutoUpdate()
         stopCommandPolling()
+        stopCloudSync()
     }
 
     private fun startAutoUpdate() {
@@ -140,14 +149,20 @@ class ChildDashboardActivity : AppCompatActivity() {
             .putBoolean("kiosk_active", false)
             .putBoolean("time_exceeded", false)
             .putBoolean("tracking_enabled", false)
+            .putLong("daily_usage_ms", 0)
             .apply()
         try { stopService(Intent(this, UsageService::class.java)) } catch (_: Exception) {}
+        try { stopLockTask() } catch (_: Exception) {}
         Toast.makeText(this, "Dispositivo desbloqueado por el padre", Toast.LENGTH_LONG).show()
     }
 
     private fun executeStartTracking() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("tracking_enabled", true).apply()
+        prefs.edit()
+            .putBoolean("tracking_enabled", true)
+            .putLong("daily_usage_ms", 0)
+            .putBoolean("time_exceeded", false)
+            .apply()
         startService(Intent(this, UsageService::class.java))
         Toast.makeText(this, "Control de tiempo activado por el padre", Toast.LENGTH_LONG).show()
     }
@@ -169,7 +184,9 @@ class ChildDashboardActivity : AppCompatActivity() {
             System.currentTimeMillis() - tracker.getScreenOnTimestamp() else 0
         val total = used + if (currentSession > 0) currentSession else 0
 
-        tvUsed.text = "Usado: ${formatTime(used)}"
+        tvUsed.text = if (tracking) "Usado: ${formatTime(used)}" else "Usado: 0 min"
+
+        tvLimit.text = if (limit > 0) "Límite: ${limit / 60000} min" else "Límite: —"
 
         if (blocked) {
             tvStatus.text = "BLOQUEADO"
@@ -211,9 +228,22 @@ class ChildDashboardActivity : AppCompatActivity() {
             tvRemaining.text = String.format("%02d:%02d", minutes, seconds)
         }
         tvRemaining.setTextColor(0xFFFFFFFF.toInt())
+    }
 
-        val limitMin = limit / 60000
-        tvLimit.text = "Límite: $limitMin min"
+    private var cloudSyncRunnable: Runnable? = null
+
+    private fun startCloudSync() {
+        stopCloudSync()
+        cloudSyncRunnable = Runnable {
+            syncCloudData()
+            handler.postDelayed(cloudSyncRunnable!!, 30000)
+        }
+        handler.postDelayed(cloudSyncRunnable!!, 3000)
+    }
+
+    private fun stopCloudSync() {
+        cloudSyncRunnable?.let { handler.removeCallbacks(it) }
+        cloudSyncRunnable = null
     }
 
     private fun syncCloudData() {
@@ -229,20 +259,17 @@ class ChildDashboardActivity : AppCompatActivity() {
 
         syncClient.syncToday(usedSeconds) { syncOk, _ ->
             if (syncOk) {
+                tvCloud.text = "● Sincronizado"
+                tvCloud.setTextColor(0xFF4CAF50.toInt())
                 syncClient.fetchStats(7) { stats, _ ->
                     if (stats != null) {
                         val usedMin = stats.todaySeconds / 60
                         val limitMin = stats.limitMinutes
-                        val text = if (limitMin > 0) {
-                            "$usedMin min usado de $limitMin min • ${stats.history.size} días"
+                        if (limitMin > 0) {
+                            tvCloud.text = "● $usedMin min de $limitMin min"
                         } else {
-                            "$usedMin min usado • ${stats.history.size} días"
+                            tvCloud.text = "● $usedMin min usado"
                         }
-                        tvCloud.text = "● $text"
-                        tvCloud.setTextColor(0xFF4CAF50.toInt())
-                    } else {
-                        tvCloud.text = "● Sincronizado"
-                        tvCloud.setTextColor(0xFF4CAF50.toInt())
                     }
                 }
             } else {

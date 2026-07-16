@@ -24,6 +24,10 @@ class MainActivity : AppCompatActivity() {
     private var lockTaskStarted = false
     private var unlockReceiver: BroadcastReceiver? = null
     private var isDialogShowing = false
+    private var commandPollRunnable: Runnable? = null
+    private var commandHandler = Handler(Looper.getMainLooper())
+    private lateinit var syncClient: SyncClient
+    private lateinit var tokenManager: TokenManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +44,9 @@ class MainActivity : AppCompatActivity() {
 
         enableFullScreen()
         setContentView(R.layout.activity_main)
+
+        syncClient = SyncClient(this)
+        tokenManager = TokenManager(this)
 
         findViewById<View>(R.id.blockImage).setOnClickListener {
             handleTap()
@@ -77,11 +84,14 @@ class MainActivity : AppCompatActivity() {
                 startLockTask()
             } catch (_: SecurityException) {}
         }
+
+        startCommandPolling()
     }
 
     override fun onPause() {
         super.onPause()
         isDialogShowing = false
+        stopCommandPolling()
         unlockReceiver?.let {
             try { unregisterReceiver(it) } catch (_: Exception) {}
             unlockReceiver = null
@@ -91,6 +101,34 @@ class MainActivity : AppCompatActivity() {
     private fun autoFinish() {
         try { stopLockTask() } catch (_: Exception) {}
         finishAffinity()
+    }
+
+    private fun startCommandPolling() {
+        stopCommandPolling()
+        commandPollRunnable = Runnable {
+            checkPendingCommands()
+            commandHandler.postDelayed(commandPollRunnable!!, 15000)
+        }
+        commandHandler.postDelayed(commandPollRunnable!!, 5000)
+    }
+
+    private fun stopCommandPolling() {
+        commandPollRunnable?.let { commandHandler.removeCallbacks(it) }
+        commandPollRunnable = null
+    }
+
+    private fun checkPendingCommands() {
+        syncClient.getPendingCommands { commands, _ ->
+            if (commands != null) {
+                for (cmd in commands) {
+                    syncClient.markCommandDelivered(cmd.id) { _, _ -> }
+                    if (cmd.commandType == "unblock") {
+                        unlockDevice()
+                    }
+                    syncClient.markCommandExecuted(cmd.id) { _, _ -> }
+                }
+            }
+        }
     }
 
     override fun onUserLeaveHint() {
@@ -186,7 +224,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPassword(password: String): Boolean {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        val storedHash = prefs.getString("password_hash", null) ?: return false
+        val storedHash = prefs.getString("password_hash", null)
+        if (storedHash.isNullOrEmpty()) return true
         return storedHash == hashPassword(password)
     }
 
@@ -198,12 +237,13 @@ class MainActivity : AppCompatActivity() {
                 .putBoolean("time_exceeded", false)
                 .putBoolean("tracking_enabled", false)
                 .putLong("last_unlock_time", System.currentTimeMillis())
+                .putLong("daily_usage_ms", 0)
                 .apply()
 
             stopService(Intent(this, UsageService::class.java))
             stopLockTask()
 
-            startActivity(Intent(this, SettingsActivity::class.java).apply {
+            startActivity(Intent(this, ChildDashboardActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             })
             finishAffinity()

@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E">
+    android:background="#0D1117">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -21,7 +21,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="32dp"
             android:text="Tiempo de pantalla terminado"
             android:textColor="#FFFFFF"
             android:textSize="24sp"
@@ -31,10 +31,24 @@
             android:id="@+id/tvBlockMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:text="Toca 5 veces para desbloquear"
-            android:textColor="#B0B0B0"
+            android:textColor="#8B949E"
             android:textSize="16sp" />
+
+        <View
+            android:layout_width="64dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="48dp"
+            android:background="#21262D" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="SafeKid"
+            android:textColor="#484F58"
+            android:textSize="14sp" />
 
     </LinearLayout>
 

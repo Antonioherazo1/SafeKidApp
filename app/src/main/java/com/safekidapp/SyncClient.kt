@@ -269,7 +269,10 @@ class SyncClient(private val context: Context) {
                 if (ok && body != null) {
                     val obj = JSONObject(body)
                     val limit = obj.optInt("daily_limit_minutes", 0)
-                    prefs.edit().putInt("cloud_limit_minutes", limit).apply()
+                    prefs.edit()
+                        .putInt("cloud_limit_minutes", limit)
+                        .putLong("daily_limit_ms", limit * 60 * 1000L)
+                        .apply()
                 }
                 callback(ok, if (ok) null else body)
             } catch (e: Exception) {
