@@ -216,6 +216,41 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<MaterialButton>(R.id.btnCloudSync).setOnClickListener {
+            if (!syncClient.isConfigured()) {
+                Toast.makeText(this, "Primero registra el dispositivo", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            tvStatus.text = "◌ Sincronizando..."
+            tvStatus.setTextColor(0xFFFFA500.toInt())
+
+            val tracker = UsageTracker(this)
+            val used = tracker.getAccumulatedUsage().toInt() / 1000
+
+            syncClient.syncToday(used) { success, error ->
+                if (success) {
+                    tvStatus.text = "● Sincronizado"
+                    tvStatus.setTextColor(0xFF4CAF50.toInt())
+                    Toast.makeText(this, "Datos sincronizados", Toast.LENGTH_SHORT).show()
+                } else {
+                    tvStatus.text = "✕ Error: ${error ?: "desconocido"}"
+                    tvStatus.setTextColor(0xFFFF5252.toInt())
+                }
+            }
+        }
+    }
+
+    private fun updateCloudStatus(tvStatus: TextView, client: SyncClient) {
+        if (client.isConfigured()) {
+            tvStatus.text = "● Conectado (${client.getDeviceName() ?: "sin nombre"})"
+            tvStatus.setTextColor(0xFF4CAF50.toInt())
+        } else {
+            tvStatus.text = "◎ Desconectado"
+            tvStatus.setTextColor(0xFF999999.toInt())
+        }
+    }
+
     private fun doRegister(tvStatus: TextView, client: SyncClient, childUsername: String?, deviceName: String) {
         tvStatus.text = "◌ Registrando..."
         tvStatus.setTextColor(0xFFFFA500.toInt())
@@ -255,41 +290,6 @@ class SettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
-    }
-
-        findViewById<MaterialButton>(R.id.btnCloudSync).setOnClickListener {
-            if (!syncClient.isConfigured()) {
-                Toast.makeText(this, "Primero registra el dispositivo", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            tvStatus.text = "◌ Sincronizando..."
-            tvStatus.setTextColor(0xFFFFA500.toInt())
-
-            val tracker = UsageTracker(this)
-            val used = tracker.getAccumulatedUsage().toInt() / 1000
-
-            syncClient.syncToday(used) { success, error ->
-                if (success) {
-                    tvStatus.text = "● Sincronizado"
-                    tvStatus.setTextColor(0xFF4CAF50.toInt())
-                    Toast.makeText(this, "Datos sincronizados", Toast.LENGTH_SHORT).show()
-                } else {
-                    tvStatus.text = "✕ Error: ${error ?: "desconocido"}"
-                    tvStatus.setTextColor(0xFFFF5252.toInt())
-                }
-            }
-        }
-    }
-
-    private fun updateCloudStatus(tvStatus: TextView, client: SyncClient) {
-        if (client.isConfigured()) {
-            tvStatus.text = "● Conectado (${client.getDeviceName() ?: "sin nombre"})"
-            tvStatus.setTextColor(0xFF4CAF50.toInt())
-        } else {
-            tvStatus.text = "◎ Desconectado"
-            tvStatus.setTextColor(0xFF999999.toInt())
-        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
