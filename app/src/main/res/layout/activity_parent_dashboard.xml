@@ -62,6 +62,13 @@
     </LinearLayout>
 
     <Button
+        android:id="@+id/btnParentSettings"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:text="Configuración del dispositivo" />
+
+    <Button
         android:id="@+id/btnLogoutParent"
         android:layout_width="match_parent"
         android:layout_height="48dp"

@@ -280,6 +280,24 @@ class SyncClient(private val context: Context) {
         }
     }
 
+    fun registerChildDevice(childUsername: String, deviceName: String, callback: (Boolean, String?) -> Unit) {
+        val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
+        val json = JSONObject()
+            .put("child_username", childUsername)
+            .put("name", deviceName)
+        apiRequest("/parent/register-child-device", "POST", json.toString(), token = token) { ok, body ->
+            if (ok && body != null) {
+                val obj = JSONObject(body)
+                prefs.edit()
+                    .putString("api_key", obj.getString("api_key"))
+                    .putString("device_id", obj.getString("device_id"))
+                    .putString("device_name", deviceName)
+                    .apply()
+            }
+            callback(ok, if (ok) null else body)
+        }
+    }
+
     fun linkChild(childUsername: String, callback: (Boolean, String?) -> Unit) {
         val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
         val json = JSONObject().put("child_username", childUsername)

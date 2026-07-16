@@ -8,11 +8,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
-import java.security.MessageDigest
 
 class ChildDashboardActivity : AppCompatActivity() {
 
@@ -41,10 +37,6 @@ class ChildDashboardActivity : AppCompatActivity() {
             tokenManager = TokenManager(this)
 
             tvUser.text = "Hola, ${tokenManager.getUsername() ?: "Hijo"}"
-
-            findViewById<Button>(R.id.btnChildAdminAccess).setOnClickListener {
-                showPasswordDialog()
-            }
 
             findViewById<Button>(R.id.btnChildLogout).setOnClickListener {
                 tokenManager.logout()
@@ -259,47 +251,5 @@ class ChildDashboardActivity : AppCompatActivity() {
         val h = ms / 3600000
         val m = (ms % 3600000) / 60000
         return if (h > 0) "${h}h ${m}m" else "${m} minutos"
-    }
-
-    private fun showPasswordDialog() {
-        val inputLayout = TextInputLayout(this)
-        val input = TextInputEditText(this)
-        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-        inputLayout.addView(input)
-        inputLayout.setPadding(48, 16, 48, 16)
-
-        AlertDialog.Builder(this)
-            .setTitle("Acceso administrador")
-            .setMessage("Ingresa la contraseña de adulto")
-            .setView(inputLayout)
-            .setPositiveButton("Ingresar") { _, _ ->
-                val password = input.text?.toString() ?: ""
-                if (checkPassword(password)) {
-                    openSettings()
-                } else {
-                    Toast.makeText(this, "Contraseña incorrecta", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun checkPassword(password: String): Boolean {
-        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
-        val storedHash = prefs.getString("password_hash", null) ?: return false
-        return storedHash == hashPassword(password)
-    }
-
-    private fun openSettings() {
-        startActivity(Intent(this, SettingsActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        })
-    }
-
-    private fun hashPassword(password: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(password.toByteArray(Charsets.UTF_8))
-        return hash.joinToString("") { "%02x".format(it) }
     }
 }

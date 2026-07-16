@@ -33,6 +33,11 @@ class ParentDashboardActivity : AppCompatActivity() {
         tvUsername.text = "Bienvenido, ${tokenManager.getUsername() ?: "Padre"}"
 
         btnLink.setOnClickListener { linkChild() }
+
+        findViewById<Button>(R.id.btnParentSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
         btnLogout.setOnClickListener {
             tokenManager.logout()
             startActivity(Intent(this, LoginActivity::class.java).apply {

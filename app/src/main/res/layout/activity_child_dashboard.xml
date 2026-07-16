@@ -59,17 +59,10 @@
         android:textSize="14sp" />
 
     <Button
-        android:id="@+id/btnChildAdminAccess"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginTop="32dp"
-        android:text="Acceso administrador" />
-
-    <Button
         android:id="@+id/btnChildLogout"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="24dp"
         android:backgroundTint="#FF4444"
         android:text="Cerrar sesión" />
 
