@@ -234,14 +234,7 @@ class SettingsActivity : AppCompatActivity() {
 
             prefs.edit().putString("server_url", url.trimEnd('/')).apply()
 
-            val tokenManager = TokenManager(this)
-            if (tokenManager.isParent()) {
-                showChildUsernameDialog { childUsername ->
-                    doRegister(tvStatus, syncClient, childUsername, name)
-                }
-            } else {
-                doRegister(tvStatus, syncClient, null, name)
-            }
+            doRegister(tvStatus, syncClient, name)
         }
 
         findViewById<MaterialButton>(R.id.btnCloudSync).setOnClickListener {
@@ -279,11 +272,11 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun doRegister(tvStatus: TextView, client: SyncClient, childUsername: String?, deviceName: String) {
+    private fun doRegister(tvStatus: TextView, client: SyncClient, deviceName: String) {
         tvStatus.text = "◌ Registrando..."
         tvStatus.setTextColor(0xFFFFA500.toInt())
 
-        val callback: (Boolean, String?) -> Unit = { success, error ->
+        client.registerDevice(deviceName) { success, error ->
             if (success) {
                 tvStatus.text = "● Conectado"
                 tvStatus.setTextColor(0xFF4CAF50.toInt())
@@ -293,31 +286,6 @@ class SettingsActivity : AppCompatActivity() {
                 tvStatus.setTextColor(0xFFFF5252.toInt())
             }
         }
-
-        if (childUsername != null) {
-            client.registerChildDevice(childUsername, deviceName, callback)
-        } else {
-            client.registerDevice(deviceName, callback)
-        }
-    }
-
-    private fun showChildUsernameDialog(onConfirm: (String) -> Unit) {
-        val inputLayout = TextInputLayout(this)
-        val input = TextInputEditText(this)
-        input.hint = "Username del hijo"
-        inputLayout.addView(input)
-        inputLayout.setPadding(48, 16, 48, 16)
-
-        AlertDialog.Builder(this)
-            .setTitle("Registrar dispositivo")
-            .setMessage("Ingresa el username del hijo para quien es este dispositivo")
-            .setView(inputLayout)
-            .setPositiveButton("Registrar") { _, _ ->
-                val username = input.text?.toString()?.trim() ?: ""
-                if (username.isNotBlank()) onConfirm(username)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {

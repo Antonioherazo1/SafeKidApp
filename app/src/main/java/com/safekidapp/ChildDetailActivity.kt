@@ -1,9 +1,11 @@
 package com.safekidapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 
@@ -64,6 +66,25 @@ class ChildDetailActivity : AppCompatActivity() {
         btnUnblock.setOnClickListener { sendCommand("unblock", tvStatus) }
         btnStartTracking.setOnClickListener { sendCommand("start_tracking", tvStatus) }
         btnStopTracking.setOnClickListener { sendCommand("stop_tracking", tvStatus) }
+
+        findViewById<Button>(R.id.btnDeleteChild).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Eliminar hijo")
+                .setMessage("¿Eliminar a $childName? Se borrarán todos sus datos.")
+                .setPositiveButton("Eliminar") { _, _ ->
+                    tvStatus.text = "Eliminando hijo..."
+                    syncClient.deleteChild(childUsername) { ok, error ->
+                        if (ok) {
+                            Toast.makeText(this, "Hijo eliminado", Toast.LENGTH_SHORT).show()
+                            finish()
+                        } else {
+                            tvStatus.text = "Error: ${error ?: "conexión"}"
+                        }
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
     }
 
     private fun sendCommand(type: String, tvStatus: TextView) {

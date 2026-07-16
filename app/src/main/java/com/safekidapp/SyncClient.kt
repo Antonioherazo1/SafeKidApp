@@ -398,6 +398,13 @@ class SyncClient(private val context: Context) {
         }
     }
 
+    fun deleteChild(childUsername: String, callback: (Boolean, String?) -> Unit) {
+        val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
+        apiRequest("/parent/delete-child?child_username=$childUsername", "POST", token = token) { ok, body ->
+            callback(ok, if (ok) null else body)
+        }
+    }
+
     fun sendCommand(toDeviceId: String, commandType: String, callback: (Boolean, String?) -> Unit) {
         val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
         val json = JSONObject()
