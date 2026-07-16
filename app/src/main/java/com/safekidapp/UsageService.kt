@@ -60,6 +60,9 @@ class UsageService : Service() {
                     }
                     checkTimeLimit()
                 }
+                Intent.ACTION_TIME_CHANGED -> {
+                    handler.post { checkSchedule() }
+                }
             }
         }
     }
@@ -79,8 +82,13 @@ class UsageService : Service() {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_TIME_CHANGED)
         }
-        registerReceiver(receiver, filter)
+        if (Build.VERSION.SDK_INT >= 34) {
+            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
 
         val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
         val km = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
@@ -100,9 +108,8 @@ class UsageService : Service() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("kiosk_active", false)) {
             handler.post { triggerBlock() }
-        } else {
-            handler.post { checkSchedule() }
         }
+        handler.post { checkSchedule() }
 
         return START_STICKY
     }
@@ -181,9 +188,9 @@ class UsageService : Service() {
         stopScheduleMonitor()
         scheduleMonitorRunnable = Runnable {
             syncAndCheckSchedule()
-            handler.postDelayed(scheduleMonitorRunnable!!, 15000)
+            handler.postDelayed(scheduleMonitorRunnable!!, 5000)
         }
-        handler.postDelayed(scheduleMonitorRunnable!!, 3000)
+        handler.postDelayed(scheduleMonitorRunnable!!, 1000)
     }
 
     private fun stopScheduleMonitor() {
@@ -358,6 +365,9 @@ class UsageService : Service() {
         }
 
         ensureBlockScreen()
+
+        // Try to auto-unlock if schedule now permits
+        handler.post { checkSchedule() }
     }
 
     private fun ensureBlockScreen() {
