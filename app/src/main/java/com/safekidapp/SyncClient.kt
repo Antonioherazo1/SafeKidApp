@@ -453,6 +453,15 @@ class SyncClient(private val context: Context) {
         }
     }
 
+    // ── Account management ──
+
+    fun deleteAccount(callback: (Boolean, String?) -> Unit) {
+        val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
+        apiRequest("/auth/delete-account", "POST", token = token) { ok, body ->
+            callback(ok, if (ok) null else body)
+        }
+    }
+
     // ── Server URL check ──
 
     fun checkServerUrl(url: String, callback: (Boolean, String?) -> Unit) {

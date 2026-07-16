@@ -140,3 +140,19 @@ async def change_password(
     user.password_hash = hash_password(new_password)
     await db.commit()
     return {"status": "ok"}
+
+
+@router.post("/auth/delete-account")
+async def delete_account(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role == "parent":
+        children = await db.execute(
+            select(User).where(User.parent_id == user.id, User.role == "child")
+        )
+        for child in children.scalars():
+            await db.delete(child)
+    await db.delete(user)
+    await db.commit()
+    return {"status": "deleted"}

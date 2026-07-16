@@ -347,8 +347,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:layout_marginBottom="32dp"
             android:text="Salir del modo administrador"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:textColor="#D32F2F"
+            android:strokeColor="#D32F2F" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="32dp"
+            android:text="Eliminar cuenta"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:textColor="#D32F2F"
             android:strokeColor="#D32F2F" />

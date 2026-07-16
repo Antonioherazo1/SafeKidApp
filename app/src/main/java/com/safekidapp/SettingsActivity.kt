@@ -176,6 +176,34 @@ class SettingsActivity : AppCompatActivity() {
                 ))
             }
         }
+
+        findViewById<MaterialButton>(R.id.btnDeleteAccount).setOnClickListener {
+            val tm = TokenManager(this)
+            if (!tm.isLoggedIn()) {
+                Toast.makeText(this, "No hay sesión iniciada", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Eliminar cuenta")
+                .setMessage("¿Estás seguro? Se eliminarán todos tus datos y no se podrá recuperar.")
+                .setPositiveButton("Eliminar") { _, _ ->
+                    val sc = SyncClient(this)
+                    sc.deleteAccount { ok, error ->
+                        if (ok) {
+                            tm.logout()
+                            startActivity(Intent(this, LoginActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            })
+                            finish()
+                            Toast.makeText(this, "Cuenta eliminada", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this, "Error al eliminar: ${error ?: "conexión"}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
     }
 
     private fun setupCloudSection() {
