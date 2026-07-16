@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#0D1117">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="SafeKid"
-            android:textColor="#FFFFFF"
+            android:textColor="#1F1F1F"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -32,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:background="@drawable/bg_card"
-            android:elevation="4dp"
+            android:elevation="2dp"
             android:orientation="vertical"
             android:padding="24dp">
 
@@ -40,8 +39,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Tiempo usado hoy"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvTimeUsed"
@@ -49,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="---"
-                android:textColor="#FFFFFF"
+                android:textColor="#1F1F1F"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -58,14 +57,14 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                android:background="#21262D" />
+                android:background="#E5E7EB" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Tiempo restante"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvHomeRemainingTime"
@@ -73,7 +72,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="--:--"
-                android:textColor="#FFFFFF"
+                android:textColor="#1F1F1F"
                 android:textSize="36sp"
                 android:textStyle="bold" />
 
@@ -83,7 +82,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text=""
-                android:textColor="#FF6B6B"
+                android:textColor="#EF4444"
                 android:textSize="14sp" />
 
             <View
@@ -91,14 +90,14 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                android:background="#21262D" />
+                android:background="#E5E7EB" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Estado del dispositivo"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvBlockStatus"
@@ -106,7 +105,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="---"
-                android:textColor="#FFFFFF"
+                android:textColor="#1F1F1F"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -126,14 +125,14 @@
             android:layout_height="1dp"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="12dp"
-            android:background="#21262D" />
+            android:background="#E5E7EB" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Sincronización"
-            android:textColor="#8B949E"
-            android:textSize="13sp" />
+            android:textColor="#6B7280"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tvCloudInfo"
@@ -141,7 +140,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="◎ No configurado"
-            android:textColor="#484F58"
+            android:textColor="#9CA3AF"
             android:textSize="14sp" />
 
         <View

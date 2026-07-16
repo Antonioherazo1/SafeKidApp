@@ -2,7 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D1117"
     android:orientation="vertical"
     android:padding="20dp">
 
@@ -15,8 +14,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Panel de padres"
-            android:textColor="#FFFFFF"
+            android:text="Tus hijos"
+            android:textColor="#1F1F1F"
             android:textSize="26sp"
             android:textStyle="bold" />
 
@@ -25,47 +24,28 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:textColor="#8B949E"
-            android:textSize="14sp" />
+            android:textColor="#6B7280"
+            android:textSize="15sp" />
     </LinearLayout>
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tvParentStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="Cargando hijos..."
+        android:textColor="#6B7280"
+        android:textSize="16sp" />
+
+    <ListView
+        android:id="@+id/lvChildren"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="20dp"
-        android:background="@drawable/bg_card"
-        android:elevation="4dp"
-        android:orientation="vertical"
+        android:layout_marginTop="12dp"
         android:layout_weight="1"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tus hijos"
-            android:textColor="#8B949E"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/tvParentStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:text="Cargando hijos..."
-            android:textColor="#8B949E"
-            android:textSize="16sp" />
-
-        <ListView
-            android:id="@+id/lvChildren"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_weight="1"
-            android:divider="@android:color/transparent"
-            android:dividerHeight="8dp" />
-
-    </LinearLayout>
+        android:divider="@android:color/transparent"
+        android:dividerHeight="12dp" />
 
     <TextView
         android:layout_width="match_parent"
@@ -73,15 +53,15 @@
         android:layout_marginTop="12dp"
         android:gravity="center"
         android:text="Comparte tu código con los hijos para que se vinculen al registrarse"
-        android:textColor="#484F58"
-        android:textSize="12sp" />
+        android:textColor="#9CA3AF"
+        android:textSize="14sp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnParentSettings"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:text="Configuración del dispositivo" />
 
     <com.google.android.material.button.MaterialButton
@@ -92,7 +72,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="4dp"
         android:text="Cerrar sesión"
-        android:textColor="#8B949E"
-        android:textSize="13sp" />
+        android:textColor="#6B7280"
+        android:textSize="14sp" />
 
 </LinearLayout>

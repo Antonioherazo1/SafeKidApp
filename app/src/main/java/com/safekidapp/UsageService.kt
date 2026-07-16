@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import java.util.Calendar
 
 class UsageService : Service() {
 
@@ -168,10 +169,20 @@ class UsageService : Service() {
     private fun periodicCheck() {
         val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
 
+        val withinSchedule = isWithinSchedule()
+
         if (prefs.getBoolean("kiosk_active", false)) {
             if (tracker.isDifferentDay()) {
                 autoUnlock()
                 return
+            }
+            if (withinSchedule) {
+                val limit = tracker.getDailyLimit()
+                val usage = tracker.getAccumulatedUsage()
+                if (limit <= 0 || usage < limit) {
+                    autoUnlock()
+                    return
+                }
             }
             ensureBlockScreen()
             return
@@ -180,7 +191,29 @@ class UsageService : Service() {
         if (!isTracking()) return
 
         saveCurrentSession()
+
+        if (!withinSchedule) {
+            triggerBlock()
+            return
+        }
+
         checkTimeLimit()
+    }
+
+    private fun isWithinSchedule(): Boolean {
+        val prefs = getSharedPreferences("safe_kid_prefs", Context.MODE_PRIVATE)
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        if (sStart < 0 || sEnd < 0) return true
+
+        val cal = Calendar.getInstance()
+        val currentMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+
+        return if (sEnd > sStart) {
+            currentMin in sStart until sEnd
+        } else {
+            currentMin >= sStart || currentMin < sEnd
+        }
     }
 
     private fun saveCurrentSession() {

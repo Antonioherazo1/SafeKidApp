@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#0D1117">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,7 +15,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Hijo"
-            android:textColor="#FFFFFF"
+            android:textColor="#1F1F1F"
             android:textSize="26sp"
             android:textStyle="bold" />
 
@@ -33,15 +32,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Información"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvChildDetailInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="#FFFFFF"
+                android:textColor="#1F1F1F"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -58,8 +57,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Límite diario"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -93,6 +92,84 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/cardSchedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:elevation="2dp"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Horario de uso"
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Desde:"
+                    android:textColor="#1F1F1F"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScheduleStart"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="--:--"
+                    android:textColor="#7C4DFF"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hasta:"
+                    android:textColor="#1F1F1F"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScheduleEnd"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="--:--"
+                    android:textColor="#7C4DFF"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearSchedule"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="Quitar horario"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -105,15 +182,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Comandos remotos"
-                android:textColor="#8B949E"
-                android:textSize="13sp" />
+                android:textColor="#6B7280"
+                android:textSize="14sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCmdBlock"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="12dp"
-                android:backgroundTint="#FF5252"
+                android:backgroundTint="#EF4444"
                 android:text="Bloquear dispositivo" />
 
             <com.google.android.material.button.MaterialButton
@@ -121,7 +198,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="#4CAF50"
+                android:backgroundTint="#10B981"
                 android:text="Desbloquear dispositivo" />
 
             <com.google.android.material.button.MaterialButton
@@ -136,7 +213,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="#FF9800"
+                android:backgroundTint="#F59E0B"
                 android:text="Detener control de tiempo" />
         </LinearLayout>
 
@@ -154,7 +231,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:textColor="#8B949E"
+                android:textColor="#6B7280"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -167,7 +244,7 @@
             android:layout_marginTop="8dp"
             android:padding="4dp"
             android:text="Eliminar hijo"
-            android:textColor="#484F58"
+            android:textColor="#9CA3AF"
             android:textSize="12sp" />
 
     </LinearLayout>

@@ -34,7 +34,9 @@ data class ChildInfo(
     val username: String,
     val apiKey: String,
     val dailyLimitMinutes: Int,
-    val todaySeconds: Int
+    val todaySeconds: Int,
+    val scheduleStartMin: Int = -1,
+    val scheduleEndMin: Int = -1
 )
 
 data class PendingCommandInfo(
@@ -269,9 +271,13 @@ class SyncClient(private val context: Context) {
                 if (ok && body != null) {
                     val obj = JSONObject(body)
                     val limit = obj.optInt("daily_limit_minutes", 0)
+                    val sStart = obj.optInt("schedule_start_min", -1)
+                    val sEnd = obj.optInt("schedule_end_min", -1)
                     prefs.edit()
                         .putInt("cloud_limit_minutes", limit)
                         .putLong("daily_limit_ms", limit * 60 * 1000L)
+                        .putInt("schedule_start_min", sStart)
+                        .putInt("schedule_end_min", sEnd)
                         .apply()
                 }
                 callback(ok, if (ok) null else body)
@@ -355,6 +361,8 @@ class SyncClient(private val context: Context) {
                             apiKey = c.getString("api_key"),
                             dailyLimitMinutes = c.getInt("daily_limit_minutes"),
                             todaySeconds = c.getInt("today_seconds"),
+                            scheduleStartMin = c.optInt("schedule_start_min", -1),
+                            scheduleEndMin = c.optInt("schedule_end_min", -1),
                         )
                         )
                     }
@@ -401,6 +409,13 @@ class SyncClient(private val context: Context) {
     fun setChildLimit(childUsername: String, limitMinutes: Int, callback: (Boolean, String?) -> Unit) {
         val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
         apiRequest("/parent/set-limit?child_username=$childUsername&limit_minutes=$limitMinutes", "POST", token = token) { ok, body ->
+            callback(ok, if (ok) null else body)
+        }
+    }
+
+    fun setChildSchedule(childUsername: String, startMin: Int, endMin: Int, callback: (Boolean, String?) -> Unit) {
+        val token = tokenManager.getToken() ?: run { callback(false, "Not logged in"); return }
+        apiRequest("/parent/set-schedule?child_username=$childUsername&start_min=$startMin&end_min=$endMin", "POST", token = token) { ok, body ->
             callback(ok, if (ok) null else body)
         }
     }

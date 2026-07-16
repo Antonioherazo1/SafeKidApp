@@ -1,24 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SafeKidApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.SafeKidApp" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">#7C4DFF</item>
         <item name="colorPrimaryVariant">#651FFF</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorSecondary">#FF6B6B</item>
-        <item name="colorSecondaryVariant">#FF5252</item>
+        <item name="colorSecondary">#EF4444</item>
+        <item name="colorSecondaryVariant">#DC2626</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSurface">#1E1E2E</item>
-        <item name="colorOnSurface">#FFFFFF</item>
-        <item name="colorOnBackground">#C9D1D9</item>
-        <item name="android:colorBackground">#0D1117</item>
-        <item name="android:statusBarColor">#0D1117</item>
-        <item name="android:navigationBarColor">#0D1117</item>
-        <item name="android:windowBackground">@color/dark_bg</item>
-        <item name="android:textColorPrimary">#FFFFFF</item>
-        <item name="android:textColorSecondary">#8B949E</item>
-        <item name="android:colorBackground">#0D1117</item>
-        <item name="colorControlNormal">#8B949E</item>
-        <item name="colorControlActivated">#7C4DFF</item>
-        <item name="colorControlHighlight">#1F7C4DFF</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorOnSurface">#1F1F1F</item>
+        <item name="colorOnBackground">#1F1F1F</item>
+        <item name="android:colorBackground">#F5F5F7</item>
+        <item name="android:statusBarColor">#F5F5F7</item>
+        <item name="android:navigationBarColor">#F5F5F7</item>
+        <item name="android:windowBackground">@color/bg_light</item>
     </style>
 </resources>

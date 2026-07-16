@@ -2,7 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D1117"
     android:gravity="center_horizontal"
     android:orientation="vertical"
     android:padding="24dp">
@@ -12,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="SafeKid"
-        android:textColor="#FFFFFF"
+        android:textColor="#1F1F1F"
         android:textSize="32sp"
         android:textStyle="bold" />
 
@@ -21,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#8B949E"
+        android:textColor="#6B7280"
         android:textSize="15sp" />
 
     <LinearLayout
@@ -29,7 +28,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="28dp"
         android:background="@drawable/bg_card"
-        android:elevation="4dp"
+        android:elevation="2dp"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="28dp">
@@ -39,7 +38,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cargando..."
-            android:textColor="#8B949E"
+            android:textColor="#6B7280"
             android:textSize="16sp" />
 
         <TextView
@@ -47,7 +46,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#FFFFFF"
+            android:textColor="#1F1F1F"
             android:textSize="52sp"
             android:textStyle="bold" />
 
@@ -56,13 +55,13 @@
             android:layout_height="2dp"
             android:layout_marginTop="20dp"
             android:layout_marginBottom="12dp"
-            android:background="#21262D" />
+            android:background="#E5E7EB" />
 
         <TextView
             android:id="@+id/tvChildUsed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#8B949E"
+            android:textColor="#6B7280"
             android:textSize="14sp" />
 
         <TextView
@@ -71,8 +70,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Límite: -- min"
-            android:textColor="#484F58"
-            android:textSize="13sp" />
+            android:textColor="#9CA3AF"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
@@ -81,8 +80,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:textColor="#484F58"
-        android:textSize="12sp" />
+        android:textColor="#9CA3AF"
+        android:textSize="14sp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnChildLogout"
@@ -91,7 +90,7 @@
         android:layout_height="40dp"
         android:layout_marginTop="8dp"
         android:text="Cerrar sesión"
-        android:textColor="#8B949E"
-        android:textSize="13sp" />
+        android:textColor="#6B7280"
+        android:textSize="14sp" />
 
 </LinearLayout>
