@@ -165,7 +165,9 @@ class SyncClient(private val context: Context) {
             return
         }
 
-        val json = JSONObject().put("name", name)
+        val json = JSONObject()
+            .put("name", name)
+            .put("username", tokenManager.getUsername() ?: "")
         apiRequest("/device/register", "POST", json.toString(), token = token) { ok, body ->
             if (ok && body != null) {
                 val obj = JSONObject(body)
