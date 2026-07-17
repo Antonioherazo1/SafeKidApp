@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var commandHandler = Handler(Looper.getMainLooper())
     private lateinit var syncClient: SyncClient
     private lateinit var tokenManager: TokenManager
+    private lateinit var tracker: UsageTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
 
         syncClient = SyncClient(this)
         tokenManager = TokenManager(this)
+        tracker = UsageTracker(this)
 
         updateBlockMessage()
 
@@ -69,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         val cal = Calendar.getInstance()
         val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
         val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
-        val dbg = "S:${sStart}-${sEnd} AHORA:${now} DENTRO:${within} TZ:${cal.timeZone.displayName}"
+        val dbg = "S:$sStart-$sEnd AHORA:$now DENTRO:$within LMT:${tracker.getDailyLimit()} USO:${tracker.getAccumulatedUsage()} TZ:${cal.timeZone.id}"
 
         if (reason == "schedule") {
             tvTitle.text = "Equipo bloqueado"
@@ -81,15 +83,12 @@ class MainActivity : AppCompatActivity() {
         } else if (reason == "time_limit") {
             tvTitle.text = "Tiempo de pantalla terminado"
             tvReason.text = "Alcanzaste el límite diario"
-            tvSchedule.visibility = View.GONE
-        } else if (reason == "schedule_debug") {
-            tvTitle.text = "DEBUG - No bloquea por horario"
-            tvReason.text = dbg
-            tvSchedule.visibility = View.GONE
+            tvSchedule.text = dbg
+            tvSchedule.visibility = View.VISIBLE
         } else {
             tvTitle.text = "Dispositivo bloqueado"
-            tvReason.text = ""
-            tvSchedule.visibility = View.GONE
+            tvReason.text = dbg
+            tvSchedule.visibility = View.VISIBLE
         }
     }
 
