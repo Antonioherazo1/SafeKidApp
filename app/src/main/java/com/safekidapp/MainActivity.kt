@@ -125,6 +125,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         startCommandPolling()
+
+        // Check if time is now within schedule → auto-unlock
+        val sStart = prefs.getInt("schedule_start_min", -1)
+        val sEnd = prefs.getInt("schedule_end_min", -1)
+        if (sStart >= 0 && sEnd >= 0) {
+            val cal = Calendar.getInstance()
+            val now = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+            val within = if (sEnd > sStart) now in sStart until sEnd else now >= sStart || now < sEnd
+            if (within) {
+                val limit = tracker.getDailyLimit()
+                val usage = tracker.getAccumulatedUsage()
+                if (limit <= 0 || usage < limit) {
+                    autoFinish()
+                    return
+                }
+            }
+        }
     }
 
     override fun onPause() {

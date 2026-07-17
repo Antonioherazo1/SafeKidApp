@@ -377,11 +377,9 @@ class UsageService : Service() {
 
         scheduleAlarm(intent)
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Settings.canDrawOverlays(this)) {
-            try {
-                startActivity(intent)
-            } catch (_: Exception) {}
-        }
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {}
     }
 
     private fun scheduleAlarm(intent: Intent) {
