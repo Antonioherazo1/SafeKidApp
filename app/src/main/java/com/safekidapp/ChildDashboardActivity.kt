@@ -2,9 +2,12 @@ package com.safekidapp
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -206,6 +209,21 @@ class ChildDashboardActivity : AppCompatActivity() {
                     blockNow("schedule")
                 }
             }
+        }
+
+        // 4. Overlay permission so the block screen can appear over ANY app
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Toast.makeText(
+                this,
+                "Activa 'Mostrar sobre otras aplicaciones' para que el bloqueo funcione aunque se use otra app",
+                Toast.LENGTH_LONG
+            ).show()
+            try {
+                startActivity(Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                ))
+            } catch (_: Exception) {}
         }
     }
 

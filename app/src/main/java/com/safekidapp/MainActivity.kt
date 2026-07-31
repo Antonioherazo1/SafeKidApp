@@ -4,10 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
@@ -28,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var isDialogShowing = false
     private var commandPollRunnable: Runnable? = null
     private var commandHandler = Handler(Looper.getMainLooper())
+    private var overlayPromptShown = false
     private lateinit var syncClient: SyncClient
     private lateinit var tokenManager: TokenManager
     private lateinit var tracker: UsageTracker
@@ -125,6 +128,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         startCommandPolling()
+
+        ensureOverlayPermission()
 
         // Check if time is now within schedule → auto-unlock
         val sStart = prefs.getInt("schedule_start_min", -1)
@@ -230,6 +235,29 @@ class MainActivity : AppCompatActivity() {
             or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         )
+    }
+
+    private fun ensureOverlayPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        if (Settings.canDrawOverlays(this)) return
+        if (overlayPromptShown) return
+        overlayPromptShown = true
+        isDialogShowing = true
+        AlertDialog.Builder(this)
+            .setTitle("Activar permiso de bloqueo")
+            .setMessage("Para bloquear el dispositivo aunque se esté usando otra aplicación, activa 'Mostrar sobre otras aplicaciones'.")
+            .setPositiveButton("Activar") { _, _ ->
+                try {
+                    startActivity(Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    ))
+                } catch (_: Exception) {}
+            }
+            .setNegativeButton("Después", null)
+            .setCancelable(false)
+            .show()
+            .setOnDismissListener { isDialogShowing = false }
     }
 
     private fun handleTap() {

@@ -13,7 +13,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import java.util.Calendar
 
@@ -120,6 +119,18 @@ class UsageService : Service() {
         stopScheduleMonitor()
         try { unregisterReceiver(receiver) } catch (_: Exception) {}
         super.onDestroy()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        try {
+            val restart = Intent(this, UsageService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(restart)
+            } else {
+                startService(restart)
+            }
+        } catch (_: Exception) {}
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
